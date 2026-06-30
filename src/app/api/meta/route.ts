@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
   if (!title) return NextResponse.json(null);
 
   const key = process.env.OMDB_API_KEY;
-  // No key → silent no-op, app degrades gracefully
   if (!key) return NextResponse.json(null);
 
   const url = new URL('https://www.omdbapi.com/');
@@ -27,11 +26,9 @@ export async function GET(req: NextRequest) {
   if (year) url.searchParams.set('y', year);
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: 86400 } });
+    const res = await fetch(url.toString());
     const d = await res.json() as Record<string, string>;
 
-    // OMDB returns Response:"False" on errors (limit hit, not found, etc.)
-    // Never throw — always degrade gracefully
     if (d.Response === 'False') return NextResponse.json(null);
 
     const runtimeMatch = d.Runtime?.match(/(\d+)/);
