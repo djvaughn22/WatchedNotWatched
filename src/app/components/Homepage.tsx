@@ -274,16 +274,16 @@ export function Homepage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="#early-access"
+              href="/watch"
               className="bg-violet-600 hover:bg-violet-500 text-white font-bold text-lg px-8 py-4 rounded-full transition-colors"
             >
-              Join Early Access
+              Try it now →
             </a>
             <a
-              href="#pricing"
+              href="#early-access"
               className="border border-white/20 hover:border-white/40 text-white font-semibold text-lg px-8 py-4 rounded-full transition-colors"
             >
-              Become a Founding Member
+              Join Early Access
             </a>
           </div>
         </div>
