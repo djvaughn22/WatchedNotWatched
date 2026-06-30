@@ -42,8 +42,7 @@ export async function GET(req: NextRequest) {
 
     const meta: MovieMeta = { poster, plot, genres, imdbRating, contentRating, runtimeSeconds };
     return NextResponse.json(meta);
-  } catch {
-    // Network error, parse error, anything — silent null
-    return NextResponse.json(null);
+  } catch (e) {
+    return NextResponse.json({ _debug: 'catch', error: String(e) });
   }
 }
