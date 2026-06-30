@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!title) return NextResponse.json(null);
 
   const key = process.env.OMDB_API_KEY;
-  if (!key) return NextResponse.json(null);
+  if (!key) return NextResponse.json({ _debug: 'no_key', allKeys: Object.keys(process.env).filter(k => k.includes('OMDB')) });
 
   const url = new URL('https://www.omdbapi.com/');
   url.searchParams.set('t', title);
