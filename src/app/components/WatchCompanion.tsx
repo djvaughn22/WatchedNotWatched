@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { TITLES, TITLES_BY_TMDB_ID, type Title, type FilterCategory, type FilterEvent } from '@/data/titles';
-import type { SearchResult } from '@/app/api/search/route';
+import { TITLES, type Title, type FilterCategory, type FilterEvent } from '@/data/titles';
 
 const ALL_CATEGORIES: FilterCategory[] = [
   'Profanity',
@@ -147,9 +146,6 @@ function UpcomingRow({ event, elapsed }: { event: FilterEvent; elapsed: number }
 export function WatchCompanion() {
   const [step, setStep] = useState<Step>('select');
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [tmdbAvailable, setTmdbAvailable] = useState<boolean | null>(null);
   const [selected, setSelected] = useState<SelectedTitle | null>(null);
   const [filters, setFilters] = useState<Record<FilterCategory, boolean>>(DEFAULT_FILTERS);
   const [voiceOn, setVoiceOn] = useState(true);
@@ -171,8 +167,6 @@ export function WatchCompanion() {
   const firedRef = useRef<Set<number>>(new Set());
   const alertIdRef = useRef(0);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const localTitle = selected?.localData ?? null;
   const activeEvents: FilterEvent[] = localTitle
     ? localTitle.events.filter((e) => filters[e.category])
@@ -196,36 +190,6 @@ export function WatchCompanion() {
       setNotifPermission(Notification.permission);
     }
   }, []);
-
-  // Probe TMDB availability once
-  useEffect(() => {
-    fetch('/api/search?q=test')
-      .then((r) => r.json())
-      .then((d) => setTmdbAvailable(!d?.error))
-      .catch(() => setTmdbAvailable(false));
-  }, []);
-
-  // Debounced search
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (query.length < 2) { setSearchResults([]); return; }
-
-    if (!tmdbAvailable) {
-      // Fall back to local search
-      setSearchResults([]);
-      return;
-    }
-
-    searchTimer.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data: SearchResult[] = await res.json();
-        setSearchResults(Array.isArray(data) ? data : []);
-      } catch { setSearchResults([]); }
-      finally { setSearching(false); }
-    }, 350);
-  }, [query, tmdbAvailable]);
 
   const localResults = TITLES.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
 
@@ -305,19 +269,6 @@ export function WatchCompanion() {
     });
   }, [elapsed, activeEvents, voiceOn, notifsEnabled]);
 
-  const selectTitle = useCallback((result: SearchResult) => {
-    const local = TITLES_BY_TMDB_ID.get(result.tmdbId) ?? null;
-    setSelected({
-      localData: local,
-      tmdbId: result.tmdbId,
-      name: result.name,
-      year: result.year,
-      mediaType: result.mediaType,
-      runtime: local?.runtime ?? 0,
-    });
-    setStep('filters');
-  }, []);
-
   const selectLocalTitle = useCallback((t: Title) => {
     setSelected({ localData: t, tmdbId: t.tmdbId, name: t.name, year: t.year, mediaType: t.mediaType, runtime: t.runtime });
     setStep('filters');
@@ -393,7 +344,7 @@ export function WatchCompanion() {
 
   const reset = useCallback(() => {
     setStep('select'); setSelected(null); setRunning(false);
-    setAlerts([]); setCountdown(null); setQuery(''); setSearchResults([]);
+    setAlerts([]); setCountdown(null); setQuery('');
     setStartOffset(''); releaseWakeLock();
   }, [releaseWakeLock]);
 
@@ -442,71 +393,31 @@ export function WatchCompanion() {
               <p className="text-slate-400 text-base">Search any show or movie. Open this on your phone while you watch on TV.</p>
             </div>
 
-            <div className="relative mb-4">
-              <input
-                type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-                placeholder={tmdbAvailable ? 'Search millions of titles…' : 'Search titles…'}
-                className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500/60 text-base transition-colors"
-                autoFocus
-              />
-              {searching && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+            <input
+              type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search titles…"
+              className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500/60 text-base transition-colors mb-4"
+              autoFocus
+            />
+
+            {query.length < 2 && (
+              <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold mb-3 px-1">Available titles</p>
+            )}
+            <div className="flex flex-col gap-2">
+              {localResults.map((t) => (
+                <button key={t.id} onClick={() => selectLocalTitle(t)}
+                  className="flex items-center justify-between bg-white/5 active:bg-white/10 border border-white/10 rounded-2xl px-5 py-4 text-left">
+                  <div className="min-w-0">
+                    <p className="font-bold text-base">{t.name}</p>
+                    <p className="text-slate-500 text-sm mt-0.5">{t.platform} · {t.events.length} filter events</p>
+                  </div>
+                  <span className="text-xs font-black px-2.5 py-1 rounded-full bg-violet-600 text-white shrink-0 ml-3">READY</span>
+                </button>
+              ))}
+              {query.length >= 2 && localResults.length === 0 && (
+                <p className="text-center text-slate-600 py-8">No matches for &ldquo;{query}&rdquo; yet.</p>
               )}
             </div>
-
-            {/* TMDB results */}
-            {tmdbAvailable && searchResults.length > 0 && (
-              <div className="flex flex-col gap-2 mb-4">
-                {searchResults.map((r) => {
-                  const hasFilters = TITLES_BY_TMDB_ID.has(r.tmdbId);
-                  return (
-                    <button key={r.tmdbId} onClick={() => selectTitle(r)}
-                      className="flex items-center gap-4 bg-white/5 active:bg-white/10 border border-white/10 rounded-2xl px-5 py-4 text-left transition-all">
-                      {r.poster
-                        ? <img src={r.poster} alt="" className="w-10 h-14 object-cover rounded-lg shrink-0" />
-                        : <div className="w-10 h-14 bg-white/10 rounded-lg shrink-0 flex items-center justify-center text-slate-600 text-lg">{r.mediaType === 'tv' ? '📺' : '🎬'}</div>}
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-base leading-tight">{r.name}</p>
-                        <p className="text-slate-500 text-sm mt-0.5">{r.year} · {r.mediaType === 'tv' ? 'Series' : 'Movie'}</p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        {hasFilters
-                          ? <span className="text-xs font-black px-2.5 py-1 rounded-full bg-violet-600 text-white">FILTERS READY</span>
-                          : <span className="text-xs text-slate-600">No filters yet</span>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Local fallback / featured titles */}
-            {(!tmdbAvailable || query.length < 2) && (
-              <>
-                {query.length < 2 && <p className="text-slate-600 text-xs uppercase tracking-wider font-semibold mb-3 px-1">Featured titles with filters</p>}
-                <div className="flex flex-col gap-2">
-                  {localResults.map((t) => (
-                    <button key={t.id} onClick={() => selectLocalTitle(t)}
-                      className="flex items-center justify-between bg-white/5 active:bg-white/10 border border-white/10 rounded-2xl px-5 py-4 text-left">
-                      <div className="min-w-0">
-                        <p className="font-bold text-base">{t.name}</p>
-                        <p className="text-slate-500 text-sm mt-0.5">{t.platform} · {t.events.length} filter events</p>
-                      </div>
-                      <span className="text-xs font-black px-2.5 py-1 rounded-full bg-violet-600 text-white shrink-0 ml-3">READY</span>
-                    </button>
-                  ))}
-                  {query.length >= 2 && localResults.length === 0 && !tmdbAvailable && (
-                    <p className="text-center text-slate-600 py-8">No local matches for &ldquo;{query}&rdquo;.</p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {!tmdbAvailable && tmdbAvailable !== null && (
-              <p className="text-center text-slate-700 text-xs mt-6">
-                Full search unavailable — add a free TMDB API key to unlock millions of titles.
-              </p>
-            )}
           </div>
         )}
 
