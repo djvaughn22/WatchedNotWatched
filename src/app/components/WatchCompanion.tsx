@@ -163,6 +163,9 @@ export function WatchCompanion() {
   const [resyncInput, setResyncInput] = useState('');
   const [resyncOpen, setResyncOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertState[]>([]);
+  const [sessionMutes, setSessionMutes] = useState(0);
+  const [sessionSkips, setSessionSkips] = useState(0);
+  const [lifetimeFiltered, setLifetimeFiltered] = useState(0);
   const startRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const firedRef = useRef<Set<number>>(new Set());
@@ -176,6 +179,14 @@ export function WatchCompanion() {
     : [];
   const upcoming = activeEvents.filter((e) => e.at > elapsed).slice(0, 5);
   const runtime = localTitle?.runtime ?? 0;
+
+  // Load lifetime counter from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('wnw_lifetime_filtered');
+      if (stored) setLifetimeFiltered(Number(stored));
+    } catch { /* ignore */ }
+  }, []);
 
   // Check notification support on mount
   useEffect(() => {
@@ -266,6 +277,15 @@ export function WatchCompanion() {
         const id = alertIdRef.current++;
         setAlerts((prev) => [{ id, event, remaining: event.duration }, ...prev].slice(0, 4));
 
+        // Update counters
+        if (event.action === 'mute') setSessionMutes((n) => n + 1);
+        else setSessionSkips((n) => n + 1);
+        setLifetimeFiltered((n) => {
+          const next = n + 1;
+          try { localStorage.setItem('wnw_lifetime_filtered', String(next)); } catch { /* ignore */ }
+          return next;
+        });
+
         if (voiceOn) {
           speak(event.action === 'mute'
             ? `Mute now. ${event.label}. ${event.duration} seconds.`
@@ -306,6 +326,8 @@ export function WatchCompanion() {
   const beginCountdown = useCallback(() => {
     firedRef.current.clear();
     setAlerts([]);
+    setSessionMutes(0);
+    setSessionSkips(0);
     const offsetSecs = parseMmSs(startOffset) ?? 0;
     setElapsed(offsetSecs);
     setDone(false);
@@ -653,12 +675,35 @@ export function WatchCompanion() {
                     style={{ width: `${Math.min(100, (elapsed / runtime) * 100)}%` }} />
                 </div>
               )}
+
+              {/* Session counter */}
+              {(sessionMutes + sessionSkips) > 0 && (
+                <div className="flex items-center justify-center gap-3 mt-5">
+                  {sessionMutes > 0 && (
+                    <div className="flex items-center gap-1.5 bg-violet-600/20 border border-violet-500/30 rounded-full px-4 py-1.5">
+                      <span className="text-sm">🔇</span>
+                      <span className="text-violet-300 font-black text-sm">{sessionMutes}</span>
+                      <span className="text-violet-500 text-xs">muted</span>
+                    </div>
+                  )}
+                  {sessionSkips > 0 && (
+                    <div className="flex items-center gap-1.5 bg-rose-600/20 border border-rose-500/30 rounded-full px-4 py-1.5">
+                      <span className="text-sm">⏭</span>
+                      <span className="text-rose-300 font-black text-sm">{sessionSkips}</span>
+                      <span className="text-rose-500 text-xs">skipped</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {done && (
               <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-5 mb-5 text-center">
-                <p className="text-emerald-400 font-bold text-lg">All done!</p>
-                <p className="text-slate-400 text-sm mt-1">{activeEvents.length} filter events complete.</p>
+                <p className="text-emerald-400 font-bold text-lg">All done! 🎉</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {sessionMutes + sessionSkips} scenes filtered this session
+                </p>
+                <p className="text-slate-600 text-xs mt-2">{lifetimeFiltered} total scenes filtered all time</p>
               </div>
             )}
 

@@ -59,19 +59,19 @@ const TIMELINE_ITEMS: {
 
 const USE_CASES = [
   {
-    icon: '🏠',
-    title: 'Parents',
-    desc: "Let your kids watch popular shows without worrying about what comes next. You set the filters. The content follows your rules.",
+    icon: '😬',
+    title: 'The Lunge',
+    desc: 'A great show comes on. Everything is fine. Then suddenly you\'re diving across the couch for the remote. WatchedNotWatched tells you 5 seconds before it happens.',
   },
   {
-    icon: '🎓',
-    title: 'Teachers & Youth Leaders',
-    desc: 'Show clips in class or group settings without the awkward moments. Clean by default, every time.',
+    icon: '👨‍👩‍👧',
+    title: 'Watching with Kids',
+    desc: "You want them to see the movie everyone's talking about. Not the three scenes you'll spend a week explaining. Set your filters and watch without holding your breath.",
   },
   {
     icon: '🎬',
-    title: 'Anyone Who Wants Clean',
-    desc: "You don't have to explain why. You just want to watch without the trash. That's enough.",
+    title: 'Picky by Choice',
+    desc: "You don't have a problem with good TV. You have a problem with lazy writing that thinks shock value is a personality. You deserve better. This helps.",
   },
 ];
 
@@ -260,22 +260,25 @@ export function Homepage() {
       <section className="pt-36 pb-28 px-4 sm:px-6 text-center">
         <div className="max-w-4xl mx-auto">
           <div className="inline-block bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-8">
-            Early Access · MVP
+            Free to try · No install
           </div>
           <h1 className="text-5xl sm:text-7xl font-black tracking-tight leading-[1.05] mb-6">
-            Watch the story.
+            Great shows.
             <br />
-            <span className="text-violet-400">Skip the trash.</span>
+            <span className="text-violet-400">Zero scrambling.</span>
           </h1>
-          <p className="text-xl sm:text-2xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-            A clean-viewing layer for shows and movies you already have access to.
+          <p className="text-xl sm:text-2xl text-slate-400 max-w-2xl mx-auto mb-5 leading-relaxed">
+            Your phone alerts you the moment before an f-bomb, sex scene, or gore clip — so you mute or skip before it hits.
+          </p>
+          <p className="text-base text-slate-500 max-w-xl mx-auto mb-12">
+            No app to install. Open it in your browser, search any show, press play together. Works on your couch tonight.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/watch"
               className="bg-violet-600 hover:bg-violet-500 text-white font-bold text-lg px-8 py-4 rounded-full transition-colors"
             >
-              Try it now →
+              Try it free →
             </a>
             <a
               href="#early-access"
@@ -291,7 +294,7 @@ export function Homepage() {
       <section className="py-20 px-4 sm:px-6 border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">
-            Built for people who already know why.
+            You already know the feeling.
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {USE_CASES.map((u) => (
@@ -309,9 +312,9 @@ export function Homepage() {
       <section className="py-20 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Try the demo.</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">See it for yourself.</h2>
             <p className="text-slate-400 text-lg">
-              Set your filters. See how WatchedNotWatched responds in real time.
+              Toggle what you want blocked. Watch the decision update in real time.
             </p>
           </div>
 
@@ -321,7 +324,7 @@ export function Homepage() {
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              placeholder="Try a show or movie title..."
+              placeholder="Type a show or movie title..."
               className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500/60 text-base transition-colors"
             />
           </div>
@@ -419,23 +422,23 @@ export function Homepage() {
       {/* HOW IT WORKS */}
       <section className="py-20 px-4 sm:px-6 border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">How it works</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">Three steps. Works tonight.</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 text-center">
             {[
               {
                 step: '1',
-                title: 'AI Content Map',
-                desc: 'Every show and movie is analyzed down to the second — profanity, nudity, gore, blasphemy, and more — mapped with precision.',
+                title: 'Search your show',
+                desc: 'Search any movie or series. Community members have already mapped out every f-bomb, sex scene, and gore moment — down to the second.',
               },
               {
                 step: '2',
-                title: 'Your Settings',
-                desc: 'Set personal, family, or church profiles. Choose what to mute, skip, cover, or flag at whatever sensitivity level fits you.',
+                title: 'Set your filters',
+                desc: 'Toggle what you want blocked — profanity, nudity, violence, drug use, scary scenes. Mix and match. Change them mid-movie if you want.',
               },
               {
                 step: '3',
-                title: 'Timed Actions',
-                desc: 'Mute fires at the right millisecond. Skip jumps the scene. Cover blacks the screen. Pause waits for you. Every time.',
+                title: 'Press play together',
+                desc: 'Open your streaming app on your TV. Your phone counts 3…2…1… then says "Press Play." From that moment, it alerts you before every flagged scene.',
               },
             ].map((item) => (
               <div key={item.step}>
@@ -541,9 +544,9 @@ export function Homepage() {
             </div>
           ) : (
             <>
-              <h2 className="text-4xl sm:text-5xl font-black mb-4">Get in early.</h2>
+              <h2 className="text-4xl sm:text-5xl font-black mb-4">Stop lunging for the remote.</h2>
               <p className="text-slate-400 text-lg mb-10">
-                Leave your email and we&apos;ll reach out when WatchedNotWatched is ready.
+                Join early access and be first to know when the full app launches.
               </p>
               <form onSubmit={handleSubmit} className="flex flex-col gap-3 text-left">
                 <input
