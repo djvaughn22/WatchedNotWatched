@@ -54,7 +54,7 @@ type AlertState = {
   dismissed: boolean;
 };
 
-type Step = 'select' | 'filters' | 'ready' | 'live';
+type Step = 'select' | 'filters' | 'ready' | 'countdown' | 'live';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -174,6 +174,9 @@ export function WatchCompanion() {
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [resyncInput, setResyncInput] = useState('');
+  const [resyncOpen, setResyncOpen] = useState(false);
   const startRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const [alerts, setAlerts] = useState<AlertState[]>([]);
@@ -273,18 +276,67 @@ export function WatchCompanion() {
     });
   }, [elapsed, activeEvents, voiceOn]);
 
-  const handleStart = useCallback(() => {
+  const beginCountdown = useCallback(() => {
     if (!selected) return;
     firedRef.current.clear();
     setAlerts([]);
     setElapsed(0);
     setDone(false);
     pausedAtRef.current = 0;
+    setStep('countdown');
+    setCountdown(3);
+
+    let count = 3;
+    if (voiceOn) speak('Get ready. 3');
+    vibrate(200);
+
+    const tick = setInterval(() => {
+      count -= 1;
+      setCountdown(count);
+      if (count > 0) {
+        if (voiceOn) speak(String(count));
+        vibrate(200);
+      } else {
+        clearInterval(tick);
+        if (voiceOn) speak('Press Play!');
+        vibrate([300, 100, 300, 100, 300]);
+        // small delay so the voice "Press Play" fires before we start the clock
+        setTimeout(() => {
+          startRef.current = Date.now();
+          setRunning(true);
+          setStep('live');
+          setCountdown(null);
+          acquireWakeLock();
+        }, 400);
+      }
+    }, 1000);
+  }, [selected, voiceOn, acquireWakeLock]);
+
+  // Parse MM:SS or plain seconds input for re-sync
+  const parseResync = (input: string): number | null => {
+    const trimmed = input.trim();
+    if (/^\d+:\d{1,2}$/.test(trimmed)) {
+      const [m, s] = trimmed.split(':').map(Number);
+      return m * 60 + s;
+    }
+    if (/^\d+$/.test(trimmed)) return Number(trimmed);
+    return null;
+  };
+
+  const handleResync = useCallback(() => {
+    const secs = parseResync(resyncInput);
+    if (secs === null) return;
+    pausedAtRef.current = secs;
     startRef.current = Date.now();
-    setRunning(true);
-    setStep('live');
-    acquireWakeLock();
-  }, [selected, acquireWakeLock]);
+    setElapsed(secs);
+    // Clear alerts and re-allow events that haven't fired yet at new position
+    firedRef.current = new Set(
+      activeEvents.filter((e) => e.at < secs).map((e) => e.at)
+    );
+    setAlerts([]);
+    setResyncOpen(false);
+    setResyncInput('');
+  }, [resyncInput, activeEvents]);
 
   const handlePause = useCallback(() => {
     if (!running) {
@@ -332,9 +384,9 @@ export function WatchCompanion() {
                 {voiceOn ? '🔊 Voice' : '🔇 Muted'}
               </button>
             )}
-            {step !== 'select' && (
+            {step !== 'select' && step !== 'countdown' && (
               <button
-                onClick={() => { setStep('select'); setSelected(null); setRunning(false); setAlerts([]); releaseWakeLock(); }}
+                onClick={() => { setStep('select'); setSelected(null); setRunning(false); setAlerts([]); setCountdown(null); releaseWakeLock(); }}
                 className="text-slate-400 hover:text-white text-sm transition-colors"
               >
                 ← Titles
@@ -497,12 +549,25 @@ export function WatchCompanion() {
             )}
 
             <button
-              onClick={handleStart}
+              onClick={beginCountdown}
               className="w-full bg-violet-600 active:bg-violet-700 text-white font-black text-xl px-8 py-6 rounded-full shadow-xl shadow-violet-900/50"
             >
-              Press Play &amp; Start Together
+              Start Countdown →
             </button>
-            <p className="text-slate-600 text-xs mt-3">Tap this the moment you press play on your TV</p>
+            <p className="text-slate-600 text-xs mt-3">Your phone will count 3… 2… 1… then say &ldquo;Press Play&rdquo; — hit your remote on that cue</p>
+          </div>
+        )}
+
+        {/* ── COUNTDOWN ── */}
+        {step === 'countdown' && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <p className="text-slate-400 text-lg mb-6">Get your remote ready…</p>
+            <div className="text-[160px] font-black leading-none tabular-nums text-violet-400 transition-all duration-300">
+              {countdown === 0 ? '▶' : countdown}
+            </div>
+            <p className="text-slate-300 text-2xl font-bold mt-6">
+              {countdown === 0 ? 'PRESS PLAY NOW!' : countdown === 1 ? 'Press Play on cue' : 'Get ready…'}
+            </p>
           </div>
         )}
 
@@ -540,6 +605,41 @@ export function WatchCompanion() {
                 ))}
               </div>
             )}
+
+            {/* Re-sync */}
+            <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-slate-300 text-sm font-semibold">Off sync?</p>
+                  <p className="text-slate-600 text-xs">Enter the timestamp your streaming app shows</p>
+                </div>
+                <button
+                  onClick={() => setResyncOpen((v) => !v)}
+                  className="text-violet-400 text-sm font-semibold px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-900/20"
+                >
+                  Re-sync
+                </button>
+              </div>
+              {resyncOpen && (
+                <div className="flex gap-2 mt-3">
+                  <input
+                    type="text"
+                    value={resyncInput}
+                    onChange={(e) => setResyncInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleResync()}
+                    placeholder="e.g. 12:34"
+                    className="flex-1 bg-white/10 border border-white/20 text-white placeholder-slate-600 px-4 py-3 rounded-full outline-none focus:border-violet-500/60 text-base"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleResync}
+                    className="bg-violet-600 active:bg-violet-700 text-white font-bold px-5 py-3 rounded-full"
+                  >
+                    Set
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Live filters */}
             <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 mb-5">
