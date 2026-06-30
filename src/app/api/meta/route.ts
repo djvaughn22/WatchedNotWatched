@@ -12,9 +12,9 @@ export type MovieMeta = {
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const title = url.searchParams.get('t')?.trim();
-  const year  = url.searchParams.get('y')?.trim();
+  const reqUrl = new URL(req.url);
+  const title = reqUrl.searchParams.get('t')?.trim();
+  const year  = reqUrl.searchParams.get('y')?.trim();
   if (!title) return NextResponse.json({ _debug: 'no_title', url: req.url });
 
   const key = process.env.OMDB_API_KEY;
