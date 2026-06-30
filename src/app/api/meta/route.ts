@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(url.toString());
     const d = await res.json() as Record<string, string>;
 
-    if (d.Response === 'False') return NextResponse.json(null);
+    if (d.Response === 'False') return NextResponse.json({ _debug: 'omdb_false', error: d.Error, key_len: key.length });
 
     const runtimeMatch = d.Runtime?.match(/(\d+)/);
     const runtimeSeconds = runtimeMatch ? Number(runtimeMatch[1]) * 60 : null;
