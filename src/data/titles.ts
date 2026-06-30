@@ -2,15 +2,14 @@ export type FilterCategory =
   | 'Profanity'
   | 'Sex / Nudity'
   | 'Gore & Violence'
-  | 'Blasphemy'
-  | 'Drugs & Alcohol'
+  | 'Drug Use'
   | 'Scary Scenes';
 
 export type FilterAction = 'mute' | 'skip';
 
 export type FilterEvent = {
-  at: number;        // seconds from episode/movie start
-  duration: number;  // seconds to mute (or seconds to skip forward for 'skip')
+  at: number;        // seconds from start
+  duration: number;  // seconds to mute, or seconds to skip forward
   action: FilterAction;
   category: FilterCategory;
   label: string;
@@ -18,9 +17,10 @@ export type FilterEvent = {
 
 export type Title = {
   id: string;
+  tmdbId: number;
+  mediaType: 'movie' | 'tv';
   name: string;
   year: number;
-  type: 'Movie' | 'Series';
   platform: string;
   runtime: number; // total seconds
   events: FilterEvent[];
@@ -29,36 +29,38 @@ export type Title = {
 export const TITLES: Title[] = [
   {
     id: 'the-bear-s1e1',
+    tmdbId: 130392,
+    mediaType: 'tv',
     name: 'The Bear — S1E1 "System"',
     year: 2022,
-    type: 'Series',
     platform: 'Hulu',
-    runtime: 2160, // 36 min
+    runtime: 2160,
     events: [
       { at: 47,   duration: 3,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 134,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'F-word exchange' },
       { at: 198,  duration: 4,  action: 'mute', category: 'Profanity',      label: 'Profanity-heavy argument' },
       { at: 312,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 410,  duration: 3,  action: 'mute', category: 'Profanity',      label: 'Prolonged profanity' },
-      { at: 502,  duration: 2,  action: 'mute', category: 'Drugs & Alcohol', label: 'Drug reference' },
+      { at: 502,  duration: 2,  action: 'mute', category: 'Drug Use',       label: 'Drug reference' },
       { at: 620,  duration: 3,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 781,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'F-word' },
       { at: 890,  duration: 20, action: 'skip', category: 'Gore & Violence', label: 'Graphic flashback sequence' },
       { at: 1100, duration: 3,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 1380, duration: 2,  action: 'mute', category: 'Profanity',      label: 'F-word' },
       { at: 1502, duration: 3,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
-      { at: 1750, duration: 2,  action: 'mute', category: 'Drugs & Alcohol', label: 'Drug reference dialogue' },
+      { at: 1750, duration: 2,  action: 'mute', category: 'Drug Use',       label: 'Drug use dialogue' },
       { at: 1900, duration: 3,  action: 'mute', category: 'Profanity',      label: 'Profanity' },
       { at: 2050, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
     ],
   },
   {
     id: 'top-gun-maverick',
+    tmdbId: 361743,
+    mediaType: 'movie',
     name: 'Top Gun: Maverick',
     year: 2022,
-    type: 'Movie',
     platform: 'Paramount+',
-    runtime: 8220, // 137 min
+    runtime: 8220,
     events: [
       { at: 183,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 520,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Brief profanity' },
@@ -74,11 +76,12 @@ export const TITLES: Title[] = [
   },
   {
     id: 'stranger-things-s1e1',
-    name: 'Stranger Things — S1E1 "The Vanishing"',
+    tmdbId: 66732,
+    mediaType: 'tv',
+    name: 'Stranger Things — S1E1',
     year: 2016,
-    type: 'Series',
     platform: 'Netflix',
-    runtime: 2940, // 49 min
+    runtime: 2940,
     events: [
       { at: 60,   duration: 25, action: 'skip', category: 'Scary Scenes',   label: 'Creature — opening horror sequence' },
       { at: 280,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
@@ -95,18 +98,18 @@ export const TITLES: Title[] = [
   },
   {
     id: 'avengers-2012',
+    tmdbId: 24428,
+    mediaType: 'movie',
     name: 'The Avengers',
     year: 2012,
-    type: 'Movie',
     platform: 'Disney+',
-    runtime: 8580, // 143 min
+    runtime: 8580,
     events: [
       { at: 240,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Brief language' },
       { at: 810,  duration: 20, action: 'skip', category: 'Gore & Violence', label: 'Intense action — graphic violence' },
       { at: 1500, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Language' },
       { at: 2400, duration: 15, action: 'skip', category: 'Gore & Violence', label: 'Battle sequence — intense' },
       { at: 3100, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
-      { at: 4200, duration: 2,  action: 'mute', category: 'Blasphemy',      label: 'Blasphemy' },
       { at: 5100, duration: 30, action: 'skip', category: 'Gore & Violence', label: 'Hulk rage sequence — graphic' },
       { at: 6000, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Language' },
       { at: 7200, duration: 60, action: 'skip', category: 'Gore & Violence', label: 'Major battle climax — extended violence' },
@@ -115,38 +118,43 @@ export const TITLES: Title[] = [
   },
   {
     id: 'barbie-2023',
+    tmdbId: 346698,
+    mediaType: 'movie',
     name: 'Barbie',
     year: 2023,
-    type: 'Movie',
     platform: 'Max',
-    runtime: 6900, // 115 min
+    runtime: 6900,
     events: [
       { at: 180,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Brief language' },
       { at: 620,  duration: 15, action: 'skip', category: 'Sex / Nudity',   label: 'Brief suggestive content' },
       { at: 900,  duration: 2,  action: 'mute', category: 'Profanity',      label: 'Language' },
-      { at: 1400, duration: 2,  action: 'mute', category: 'Blasphemy',      label: 'Blasphemy reference' },
       { at: 2100, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Strong language' },
       { at: 2800, duration: 10, action: 'skip', category: 'Sex / Nudity',   label: 'Adult humor — suggestive' },
       { at: 3600, duration: 2,  action: 'mute', category: 'Profanity',      label: 'F-word' },
-      { at: 4500, duration: 2,  action: 'mute', category: 'Drugs & Alcohol', label: 'Alcohol reference' },
+      { at: 4500, duration: 2,  action: 'mute', category: 'Drug Use',       label: 'Alcohol reference' },
       { at: 5200, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Language' },
       { at: 6100, duration: 2,  action: 'mute', category: 'Profanity',      label: 'Brief language' },
     ],
   },
   {
     id: 'moana-2',
+    tmdbId: 1241982,
+    mediaType: 'movie',
     name: 'Moana 2',
     year: 2024,
-    type: 'Movie',
     platform: 'Disney+',
-    runtime: 5760, // 96 min
+    runtime: 5760,
     events: [
       { at: 420,  duration: 20, action: 'skip', category: 'Scary Scenes',   label: 'Sea creature — frightening visuals' },
       { at: 1100, duration: 15, action: 'skip', category: 'Scary Scenes',   label: 'Tense dark sequence' },
       { at: 2200, duration: 20, action: 'skip', category: 'Scary Scenes',   label: 'Monster encounter' },
       { at: 3100, duration: 10, action: 'skip', category: 'Gore & Violence', label: 'Brief intense action' },
       { at: 4200, duration: 25, action: 'skip', category: 'Scary Scenes',   label: 'Villain climax sequence — intense' },
-      { at: 5000, duration: 2,  action: 'mute', category: 'Blasphemy',      label: 'Deity reference' },
     ],
   },
 ];
+
+// Map tmdbId → local Title for quick lookup after TMDB search
+export const TITLES_BY_TMDB_ID = new Map<number, Title>(
+  TITLES.map((t) => [t.tmdbId, t])
+);

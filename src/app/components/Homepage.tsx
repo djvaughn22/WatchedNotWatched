@@ -6,8 +6,7 @@ const FILTER_KEYS = [
   'Profanity',
   'Sex / Nudity',
   'Gore & Violence',
-  'Blasphemy',
-  'Drugs & Alcohol',
+  'Drug Use',
   'Scary Scenes',
 ] as const;
 
@@ -17,8 +16,7 @@ const DEFAULT_FILTERS: Record<FilterKey, boolean> = {
   'Profanity': true,
   'Sex / Nudity': true,
   'Gore & Violence': false,
-  'Blasphemy': true,
-  'Drugs & Alcohol': false,
+  'Drug Use': false,
   'Scary Scenes': false,
 };
 
@@ -51,11 +49,11 @@ const TIMELINE_ITEMS: {
     result: 'Screen covered, audio continues',
   },
   {
-    action: 'PAUSE',
-    filterKey: 'Blasphemy',
+    action: 'MUTE',
+    filterKey: 'Drug Use',
     badgeActive: 'bg-blue-600',
-    trigger: 'Mature decision scene',
-    result: 'Playback paused for your choice',
+    trigger: 'Drug use scene',
+    result: 'Audio muted for the scene',
   },
 ];
 
@@ -66,9 +64,9 @@ const USE_CASES = [
     desc: "Let your kids watch popular shows without worrying about what comes next. You set the filters. The content follows your rules.",
   },
   {
-    icon: '⛪',
-    title: 'Pastors & Churches',
-    desc: 'Show clips in sermons or youth groups without the awkward moments. Ministry-safe by default.',
+    icon: '🎓',
+    title: 'Teachers & Youth Leaders',
+    desc: 'Show clips in class or group settings without the awkward moments. Clean by default, every time.',
   },
   {
     icon: '🎬',
@@ -79,7 +77,7 @@ const USE_CASES = [
 
 const TRUST_ITEMS = [
   { title: 'Legal access required', desc: "You watch on your own legal subscription. We don't touch the source." },
-  { title: 'Viewer controlled', desc: 'Every filter is your choice. Nothing happens without your settings.' },
+  { title: 'You control everything', desc: 'Every filter is your choice. Nothing happens without your settings.' },
   { title: 'No hosting', desc: "We don't store, stream, or redistribute any video content." },
   { title: 'No edited copies', desc: 'We never create or distribute a modified version of any film.' },
   { title: 'No redistributed video', desc: 'Your stream stays between you and your service provider.' },
@@ -106,7 +104,7 @@ type Decision = {
 function getDecision(filters: Record<FilterKey, boolean>): Decision {
   const active = FILTER_KEYS.filter((k) => filters[k]).length;
   const heavy =
-    filters['Sex / Nudity'] || filters['Gore & Violence'] || filters['Blasphemy'];
+    filters['Sex / Nudity'] || filters['Gore & Violence'];
 
   if (active === 0) {
     return {
