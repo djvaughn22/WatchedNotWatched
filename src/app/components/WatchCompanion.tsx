@@ -114,20 +114,24 @@ async function fetchTVmazeMeta(id: number): Promise<TitleMeta> {
 }
 
 async function fetchMovieMeta(title: string, year: number | null): Promise<TitleMeta | null> {
+  // Called client-side — OMDB free tier is designed for browser use
+  const key = process.env.NEXT_PUBLIC_OMDB_API_KEY;
+  if (!key) return null;
   try {
-    const params = new URLSearchParams({ t: title });
+    const params = new URLSearchParams({ t: title, plot: 'short', apikey: key });
     if (year) params.set('y', String(year));
-    const res = await fetch(`/api/meta?${params}`);
+    const res = await fetch(`https://www.omdbapi.com/?${params}`);
     const d = await res.json();
-    if (!d) return null;
+    if (!d || d.Response === 'False') return null;
+    const runtimeMatch = d.Runtime?.match(/(\d+)/);
     return {
-      poster: d.poster ?? null,
-      genres: d.genres ?? [],
-      rating: d.imdbRating ?? null,
-      summary: d.plot ?? null,
+      poster: d.Poster && d.Poster !== 'N/A' ? d.Poster : null,
+      genres: d.Genre && d.Genre !== 'N/A' ? d.Genre.split(', ') : [],
+      rating: d.imdbRating && d.imdbRating !== 'N/A' ? parseFloat(d.imdbRating) : null,
+      summary: d.Plot && d.Plot !== 'N/A' ? d.Plot : null,
       network: null,
       status: null,
-      runtimeSeconds: d.runtimeSeconds ?? null,
+      runtimeSeconds: runtimeMatch ? Number(runtimeMatch[1]) * 60 : null,
     };
   } catch { return null; }
 }
