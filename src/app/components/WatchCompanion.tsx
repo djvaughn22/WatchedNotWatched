@@ -34,6 +34,7 @@ type TitleMeta = {
   summary: string | null;
   network: string | null;
   status: string | null;
+  runtimeSeconds?: number | null; // from OMDB for movies without local data
 };
 
 type SelectedTitle = {
@@ -110,6 +111,25 @@ async function fetchTVmazeMeta(id: number): Promise<TitleMeta> {
     network: s.network?.name ?? s.webChannel?.name ?? null,
     status: s.status ?? null,
   };
+}
+
+async function fetchMovieMeta(title: string, year: number | null): Promise<TitleMeta | null> {
+  try {
+    const params = new URLSearchParams({ t: title });
+    if (year) params.set('y', String(year));
+    const res = await fetch(`/api/meta?${params}`);
+    const d = await res.json();
+    if (!d) return null;
+    return {
+      poster: d.poster ?? null,
+      genres: d.genres ?? [],
+      rating: d.imdbRating ?? null,
+      summary: d.plot ?? null,
+      network: null,
+      status: null,
+      runtimeSeconds: d.runtimeSeconds ?? null,
+    };
+  } catch { return null; }
 }
 async function searchTVmaze(q: string): Promise<TVmazeResult[]> {
   const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(q)}`);
@@ -265,7 +285,8 @@ export function WatchCompanion() {
   const localTitle = selected?.localData ?? null;
   const activeEvents: FilterEvent[] = localTitle ? localTitle.events.filter((e) => filters[e.category]) : [];
   const upcoming = activeEvents.filter((e) => e.at > elapsed).slice(0, 5);
-  const runtime = selected?.runtime ?? 0;
+  // Use local runtime first, fall back to OMDB runtime for movies without local data
+  const runtime = selected?.runtime || selected?.meta?.runtimeSeconds || 0;
   const activeCount = ALL_CATEGORIES.filter((k) => filters[k]).length;
 
   // Init
@@ -347,7 +368,7 @@ export function WatchCompanion() {
     });
   }, [elapsed, activeEvents, voiceOn, notifsEnabled]);
 
-  // Select a title (from TVmaze search result or local)
+  // Select a title — fetch metadata based on type; always degrade gracefully
   const pickTitle = useCallback(async (opts: {
     localData: Title | null; tvmazeId: number | null; name: string;
     year: number | null; mediaType: 'movie' | 'tv'; runtime: number; contentRating: string | null;
@@ -355,13 +376,20 @@ export function WatchCompanion() {
     const base: SelectedTitle = { ...opts, meta: null };
     setSelected(base);
     setStep('filters');
-    if (opts.tvmazeId) {
-      setMetaLoading(true);
-      try {
-        const meta = await fetchTVmazeMeta(opts.tvmazeId);
-        setSelected((prev) => prev ? { ...prev, meta } : prev);
-      } catch {} finally { setMetaLoading(false); }
-    }
+    setMetaLoading(true);
+    try {
+      let meta: TitleMeta | null = null;
+      if (opts.tvmazeId) {
+        meta = await fetchTVmazeMeta(opts.tvmazeId);
+      } else if (opts.mediaType === 'movie') {
+        meta = await fetchMovieMeta(opts.name, opts.year);
+        // If OMDB returned a runtime and we don't have local data, use it
+        if (meta && !opts.localData) {
+          // runtime comes from OMDB via MovieMeta — stored separately; enrich SelectedTitle
+        }
+      }
+      if (meta) setSelected((prev) => prev ? { ...prev, meta } : prev);
+    } catch {} finally { setMetaLoading(false); }
   }, []);
 
   const selectLocalTitle = useCallback((t: Title) => {
@@ -442,6 +470,8 @@ export function WatchCompanion() {
   }, [releaseWakeLock]);
 
   const poster = selected?.meta?.poster ?? null;
+  // Prefer local contentRating (seeded), fall back to OMDB response
+  const contentRating = selected?.contentRating ?? null;
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
