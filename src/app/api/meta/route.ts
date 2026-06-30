@@ -9,8 +9,7 @@ export type MovieMeta = {
   runtimeSeconds: number | null;
 };
 
-// Cache at the Vercel edge for 24h so the same movie costs 1 request/day
-export const revalidate = 86400;
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const title = req.nextUrl.searchParams.get('t')?.trim();
