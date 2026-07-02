@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Homepage } from "./components/Homepage";
+import OpenMirrorNav from "./OpenMirrorNav";
 
 export const metadata: Metadata = {
   title: "WatchedNotWatched — Watch the story. Skip the trash.",
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <Homepage />;
+  return (
+    <>
+      <OpenMirrorNav />
+      <Homepage />
+    </>
+  );
 }
