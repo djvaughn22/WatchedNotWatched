@@ -205,7 +205,7 @@ function UpcomingRow({ event, elapsed }: { event: FilterEvent; elapsed: number }
   const s = ACTION_STYLES[event.action];
   const away = event.at - elapsed;
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-[#262626] last:border-0">
+    <div className="flex items-center gap-3 py-2.5 border-b border-[#26324c] last:border-0">
       <span className={`text-white text-xs font-black px-2.5 py-1 rounded-full shrink-0 ${s.badge}`}>{s.icon} {s.verb}</span>
       <span className="text-slate-300 text-sm flex-1 min-w-0 truncate">{event.label}</span>
       <span className="text-violet-400 text-sm font-semibold shrink-0">
@@ -223,9 +223,9 @@ function TitleCard({ poster, name, year, genres, rating, contentRating, hasFilte
 }) {
   return (
     <button onClick={onClick}
-      className="flex items-stretch gap-0 bg-[#151515] active:bg-[#151515] border border-[#262626] hover:border-violet-500 rounded-2xl overflow-hidden text-left transition-all w-full">
+      className="flex items-stretch gap-0 bg-[#141d2e] active:bg-[#141d2e] border border-[#26324c] hover:border-violet-500 rounded-2xl overflow-hidden text-left transition-all w-full">
       {/* Poster */}
-      <div className="w-[72px] shrink-0 bg-[#151515] relative">
+      <div className="w-[72px] shrink-0 bg-[#141d2e] relative">
         {poster
           ? <img src={poster} alt="" className="w-full h-full object-cover" />
           : <div className="w-full h-full min-h-[100px] flex items-center justify-center text-3xl text-slate-700">🎬</div>}
@@ -247,7 +247,7 @@ function TitleCard({ poster, name, year, genres, rating, contentRating, hasFilte
           {contentRating && <RatingBadge rating={contentRating} />}
           {rating && <StarRating value={rating} />}
           {genres.slice(0, 2).map((g) => (
-            <span key={g} className="text-xs text-slate-500 bg-[#151515] border border-[#262626] px-2 py-0.5 rounded-full">{g}</span>
+            <span key={g} className="text-xs text-slate-500 bg-[#141d2e] border border-[#26324c] px-2 py-0.5 rounded-full">{g}</span>
           ))}
         </div>
       </div>
@@ -483,13 +483,13 @@ export function WatchCompanion() {
     <div className="bg-[#07090f] text-white min-h-screen font-[var(--font-geist-sans)]">
 
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/95 backdrop-blur-md border-b border-[#262626]">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/95 -md border-b border-[#26324c]">
         <div className="max-w-2xl mx-auto px-4 flex items-center justify-between h-14">
           <a href="/" className="font-black text-base tracking-tight">WatchedNotWatched</a>
           <div className="flex items-center gap-3">
             {step === 'live' && (
               <button onClick={() => setVoiceOn((v) => !v)}
-                className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${voiceOn ? 'border-violet-500 text-violet-300 bg-violet-900' : 'border-[#262626] text-slate-500'}`}>
+                className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${voiceOn ? 'border-violet-500 text-violet-300 bg-violet-900' : 'border-[#26324c] text-slate-500'}`}>
                 {voiceOn ? '🔊' : '🔇'}
               </button>
             )}
@@ -523,7 +523,7 @@ export function WatchCompanion() {
             <div className="relative mb-4">
               <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search shows and movies…"
-                className="w-full bg-[#151515] border border-[#262626] text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500 text-base transition-colors"
+                className="w-full bg-[#141d2e] border border-[#26324c] text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500 text-base transition-colors"
                 autoFocus />
               {searching && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />}
             </div>
@@ -582,7 +582,7 @@ export function WatchCompanion() {
         {step === 'filters' && selected && (
           <div>
             {/* Poster hero */}
-            <div className="relative rounded-2xl overflow-hidden mb-5 bg-[#151515] border border-[#262626]">
+            <div className="relative rounded-2xl overflow-hidden mb-5 bg-[#141d2e] border border-[#26324c]">
               {poster
                 ? <div className="relative h-48">
                     <img src={poster} alt="" className="w-full h-full object-cover opacity-60" />
@@ -606,7 +606,7 @@ export function WatchCompanion() {
               </div>
             )}
 
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-5 mb-4">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-5 mb-4">
               <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">What to filter</p>
               <div className="space-y-5">
                 {ALL_CATEGORIES.map((cat) => {
@@ -627,7 +627,7 @@ export function WatchCompanion() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between bg-[#151515] border border-[#262626] rounded-2xl px-5 py-3 mb-5">
+            <div className="flex items-center justify-between bg-[#141d2e] border border-[#26324c] rounded-2xl px-5 py-3 mb-5">
               <p className="text-slate-400 text-sm">
                 <span className="text-white font-bold">{activeEvents.length}</span> events · <span className="text-white font-bold">{activeCount}</span> filters on
               </p>
@@ -646,14 +646,14 @@ export function WatchCompanion() {
         {step === 'ready' && selected && (
           <div>
             {/* Compact title card */}
-            <div className="flex items-center gap-4 bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-6">
+            <div className="flex items-center gap-4 bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-6">
               {poster && <img src={poster} alt="" className="w-12 h-16 object-cover rounded-lg shrink-0" />}
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-base leading-tight">{selected.name}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {selected.contentRating && <RatingBadge rating={selected.contentRating} />}
                   {selected.meta?.genres?.slice(0, 2).map((g) => (
-                    <span key={g} className="text-xs text-slate-500 bg-[#151515] px-2 py-0.5 rounded-full">{g}</span>
+                    <span key={g} className="text-xs text-slate-500 bg-[#141d2e] px-2 py-0.5 rounded-full">{g}</span>
                   ))}
                 </div>
                 <p className="text-slate-500 text-xs mt-1">{activeEvents.length} filter events active</p>
@@ -661,21 +661,21 @@ export function WatchCompanion() {
             </div>
 
             {/* Start offset */}
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-4">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-4">
               <p className="text-slate-400 text-sm font-semibold mb-3">Starting from</p>
               <div className="flex gap-2">
                 <button onClick={() => setStartOffset('')}
-                  className={`flex-1 py-3 rounded-full font-semibold text-sm ${startOffset === '' ? 'bg-violet-600 text-white' : 'bg-[#151515] text-slate-400'}`}>
+                  className={`flex-1 py-3 rounded-full font-semibold text-sm ${startOffset === '' ? 'bg-violet-600 text-white' : 'bg-[#141d2e] text-slate-400'}`}>
                   Beginning
                 </button>
                 <input type="text" value={startOffset} onChange={(e) => setStartOffset(e.target.value)}
                   placeholder="Resume at e.g. 45:30"
-                  className={`flex-1 py-3 px-4 rounded-full text-sm text-center outline-none ${startOffset ? 'bg-violet-600 border border-violet-500 text-white' : 'bg-[#151515] border border-[#262626] text-slate-400 placeholder-slate-600'}`} />
+                  className={`flex-1 py-3 px-4 rounded-full text-sm text-center outline-none ${startOffset ? 'bg-violet-600 border border-violet-500 text-white' : 'bg-[#141d2e] border border-[#26324c] text-slate-400 placeholder-slate-600'}`} />
               </div>
             </div>
 
             {/* Alerts */}
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-4">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-4">
               <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Alerts</p>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -705,7 +705,7 @@ export function WatchCompanion() {
             </div>
 
             {/* Steps */}
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-5">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-5">
               <ol className="space-y-3">
                 {[
                   `Open your streaming app and find "${selected.name}"`,
@@ -752,7 +752,7 @@ export function WatchCompanion() {
             </div>
 
             {runtime > 0 && (
-              <div className="w-full bg-[#151515] rounded-full h-1.5 mb-3 overflow-hidden">
+              <div className="w-full bg-[#141d2e] rounded-full h-1.5 mb-3 overflow-hidden">
                 <div className="h-full bg-violet-500 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, (elapsed / runtime) * 100)}%` }} />
               </div>
@@ -787,14 +787,14 @@ export function WatchCompanion() {
             )}
 
             {upcoming.length > 0 && (
-              <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-4">
+              <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-4">
                 <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Coming up</p>
                 {upcoming.map((e, i) => <UpcomingRow key={i} event={e} elapsed={elapsed} />)}
               </div>
             )}
 
             {/* Re-sync */}
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-4">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-slate-300 text-sm font-semibold">Off sync?</p>
@@ -808,7 +808,7 @@ export function WatchCompanion() {
                   <input type="text" value={resyncInput} onChange={(e) => setResyncInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleResync()}
                     placeholder="e.g. 12:34"
-                    className="flex-1 bg-[#151515] border border-[#262626] text-white placeholder-slate-600 px-4 py-3 rounded-full outline-none focus:border-violet-500 text-base"
+                    className="flex-1 bg-[#141d2e] border border-[#26324c] text-white placeholder-slate-600 px-4 py-3 rounded-full outline-none focus:border-violet-500 text-base"
                     autoFocus />
                   <button onClick={handleResync} className="bg-violet-600 active:bg-violet-700 text-white font-bold px-5 py-3 rounded-full">Set</button>
                 </div>
@@ -816,7 +816,7 @@ export function WatchCompanion() {
             </div>
 
             {/* Live filters */}
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-4 mb-4">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-4 mb-4">
               <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-3">Filters</p>
               <div className="space-y-4">
                 {ALL_CATEGORIES.map((cat) => {
@@ -840,13 +840,13 @@ export function WatchCompanion() {
 
       {/* BOTTOM CONTROLS */}
       {step === 'live' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#07090f]/95 backdrop-blur-md border-t border-[#262626] px-4 py-4 z-30">
+        <div className="fixed bottom-0 left-0 right-0 bg-[#07090f]/95 -md border-t border-[#26324c] px-4 py-4 z-30">
           <div className="max-w-2xl mx-auto flex gap-3">
             <button onClick={handlePause}
-              className={`flex-1 font-bold py-4 rounded-full text-base ${running ? 'bg-[#151515] active:bg-[#151515] text-white' : 'bg-violet-600 active:bg-violet-700 text-white'}`}>
+              className={`flex-1 font-bold py-4 rounded-full text-base ${running ? 'bg-[#141d2e] active:bg-[#141d2e] text-white' : 'bg-violet-600 active:bg-violet-700 text-white'}`}>
               {running ? '⏸  I Paused My Stream' : '▶  Resume'}
             </button>
-            <button onClick={handleReset} className="bg-[#151515] active:bg-[#151515] text-slate-400 font-semibold py-4 px-5 rounded-full">↺</button>
+            <button onClick={handleReset} className="bg-[#141d2e] active:bg-[#141d2e] text-slate-400 font-semibold py-4 px-5 rounded-full">↺</button>
           </div>
         </div>
       )}
@@ -864,13 +864,13 @@ function TitleHeaderInfo({ selected, metaLoading }: { selected: SelectedTitle; m
         {selected.contentRating && <RatingBadge rating={selected.contentRating} />}
         {selected.meta?.rating && <StarRating value={selected.meta.rating} />}
         {selected.meta?.network && <span className="text-slate-500 text-sm">{selected.meta.network}</span>}
-        {selected.meta?.status && <span className="text-xs text-slate-600 bg-[#151515] px-2 py-0.5 rounded-full">{selected.meta.status}</span>}
+        {selected.meta?.status && <span className="text-xs text-slate-600 bg-[#141d2e] px-2 py-0.5 rounded-full">{selected.meta.status}</span>}
         {metaLoading && <span className="text-xs text-slate-600 animate-pulse">Loading…</span>}
       </div>
       {selected.meta?.genres && selected.meta.genres.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mt-2">
           {selected.meta.genres.map((g) => (
-            <span key={g} className="text-xs text-slate-400 bg-[#151515] border border-[#262626] px-2.5 py-0.5 rounded-full">{g}</span>
+            <span key={g} className="text-xs text-slate-400 bg-[#141d2e] border border-[#26324c] px-2.5 py-0.5 rounded-full">{g}</span>
           ))}
         </div>
       )}

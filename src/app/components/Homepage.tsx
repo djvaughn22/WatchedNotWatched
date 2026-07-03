@@ -244,7 +244,7 @@ export function Homepage() {
     <div className="bg-[#07090f] text-white min-h-screen font-[var(--font-geist-sans)]">
 
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/90 backdrop-blur-md border-b border-[#262626]">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/90 -md border-b border-[#26324c]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-5">
             <span className="font-black text-lg tracking-tight">WatchedNotWatched</span>
@@ -288,7 +288,7 @@ export function Homepage() {
             </a>
             <a
               href="#early-access"
-              className="border border-[#262626] hover:border-[#262626] text-white font-semibold text-lg px-8 py-4 rounded-full transition-colors"
+              className="border border-[#26324c] hover:border-[#26324c] text-white font-semibold text-lg px-8 py-4 rounded-full transition-colors"
             >
               Join Early Access
             </a>
@@ -297,14 +297,14 @@ export function Homepage() {
       </section>
 
       {/* USE CASE CARDS */}
-      <section className="py-20 px-4 sm:px-6 border-y border-[#262626] bg-[#151515]">
+      <section className="py-20 px-4 sm:px-6 border-y border-[#26324c] bg-[#141d2e]">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">
             You already know the feeling.
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {USE_CASES.map((u) => (
-              <div key={u.title} className="bg-[#151515] border border-[#262626] rounded-2xl p-8">
+              <div key={u.title} className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-8">
                 <div className="text-4xl mb-4">{u.icon}</div>
                 <h3 className="text-xl font-bold mb-3">{u.title}</h3>
                 <p className="text-slate-400 leading-relaxed">{u.desc}</p>
@@ -331,13 +331,13 @@ export function Homepage() {
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
               placeholder="Type a show or movie title..."
-              className="w-full bg-[#151515] border border-[#262626] text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500 text-base transition-colors"
+              className="w-full bg-[#141d2e] border border-[#26324c] text-white placeholder-slate-600 px-5 py-4 rounded-2xl outline-none focus:border-violet-500 text-base transition-colors"
             />
           </div>
 
           {/* Filter Toggles */}
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 sm:p-8 mb-5">
-            <div className="flex items-center gap-2.5 mb-6 pb-5 border-b border-[#262626]">
+          <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-6 sm:p-8 mb-5">
+            <div className="flex items-center gap-2.5 mb-6 pb-5 border-b border-[#26324c]">
               <div className="w-3 h-3 rounded-full bg-rose-500" />
               <div className="w-3 h-3 rounded-full bg-amber-500" />
               <div className="w-3 h-3 rounded-full bg-green-500" />
@@ -372,8 +372,8 @@ export function Homepage() {
                   key={t.action}
                   className={`border rounded-2xl p-5 flex gap-4 items-start transition-all duration-300 ${
                     active
-                      ? 'bg-[#151515] border-[#262626] opacity-100'
-                      : 'bg-[#151515] border-[#262626] opacity-35'
+                      ? 'bg-[#141d2e] border-[#26324c] opacity-100'
+                      : 'bg-[#141d2e] border-[#26324c] opacity-35'
                   }`}
                 >
                   <span
@@ -426,7 +426,7 @@ export function Homepage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="py-20 px-4 sm:px-6 border-y border-[#262626] bg-[#151515]">
+      <section className="py-20 px-4 sm:px-6 border-y border-[#26324c] bg-[#141d2e]">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">Three steps. Works tonight.</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 text-center">
@@ -465,7 +465,7 @@ export function Homepage() {
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">Simple pricing.</h2>
           <p className="text-slate-400 text-lg mb-14">Founding member rates locked in for life.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <div className="bg-[#151515] border border-[#262626] rounded-2xl p-8 text-left">
+            <div className="bg-[#141d2e] border border-[#26324c] rounded-2xl p-8 text-left">
               <p className="text-slate-400 text-sm font-semibold uppercase tracking-widest mb-4">
                 Monthly
               </p>
@@ -475,7 +475,7 @@ export function Homepage() {
               <p className="text-slate-500 text-sm mb-8">per month</p>
               <a
                 href="#early-access"
-                className="block text-center bg-[#151515] hover:bg-[#151515] text-white font-semibold px-6 py-3 rounded-full transition-colors"
+                className="block text-center bg-[#141d2e] hover:bg-[#141d2e] text-white font-semibold px-6 py-3 rounded-full transition-colors"
               >
                 Join Monthly
               </a>
@@ -503,7 +503,7 @@ export function Homepage() {
       </section>
 
       {/* TRUST NOTE */}
-      <section className="py-20 px-4 sm:px-6 border-t border-[#262626] bg-[#151515]">
+      <section className="py-20 px-4 sm:px-6 border-t border-[#26324c] bg-[#141d2e]">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12">
             Built on legal ground.
@@ -512,7 +512,7 @@ export function Homepage() {
             {TRUST_ITEMS.map((item) => (
               <div
                 key={item.title}
-                className="flex gap-4 items-start bg-[#151515] border border-[#262626] rounded-xl p-5"
+                className="flex gap-4 items-start bg-[#141d2e] border border-[#26324c] rounded-xl p-5"
               >
                 <span className="text-emerald-400 mt-0.5 shrink-0">
                   <CheckIcon />
@@ -530,7 +530,7 @@ export function Homepage() {
       {/* EARLY ACCESS FORM */}
       <section
         id="early-access"
-        className="py-28 px-4 sm:px-6 bg-gradient-to-b from-violet-950/30 to-[#07090f] border-t border-[#262626]"
+        className="py-28 px-4 sm:px-6 bg-gradient-to-b from-violet-950/30 to-[#07090f] border-t border-[#26324c]"
       >
         <div className="max-w-xl mx-auto text-center">
           {formSubmitted ? (
@@ -563,13 +563,13 @@ export function Homepage() {
                     if (formError) setFormError('');
                   }}
                   placeholder="your@email.com"
-                  className="w-full bg-[#151515] border border-[#262626] text-white placeholder-slate-500 px-5 py-4 rounded-full outline-none focus:border-violet-500 text-base transition-colors"
+                  className="w-full bg-[#141d2e] border border-[#26324c] text-white placeholder-slate-500 px-5 py-4 rounded-full outline-none focus:border-violet-500 text-base transition-colors"
                 />
                 <div className="relative">
                   <select
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
-                    className="w-full bg-[#151515] border border-[#262626] text-white px-5 py-4 rounded-full outline-none focus:border-violet-500 text-base transition-colors appearance-none cursor-pointer"
+                    className="w-full bg-[#141d2e] border border-[#26324c] text-white px-5 py-4 rounded-full outline-none focus:border-violet-500 text-base transition-colors appearance-none cursor-pointer"
                   >
                     {ROLES.map((r) => (
                       <option key={r.value} value={r.value} className="bg-[#0d111e] text-white">
@@ -600,7 +600,7 @@ export function Homepage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-10 px-4 sm:px-6 border-t border-[#262626] text-center">
+      <footer className="py-10 px-4 sm:px-6 border-t border-[#26324c] text-center">
         <p className="font-black text-slate-300 mb-1">WatchedNotWatched</p>
         <p className="text-slate-500 text-sm">Watch the story. Skip the trash.</p>
         <p className="text-slate-700 text-xs mt-4">&copy; 2026 WatchedNotWatched. All rights reserved.</p>
