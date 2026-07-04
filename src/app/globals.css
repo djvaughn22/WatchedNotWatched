@@ -59,9 +59,9 @@ main,
 [class*="bg-neutral-950"],
 [class*="bg-zinc-950"],
 [class*="bg-stone-950"],
-[class*="bg-[#0C0C0C]"],
+[class*="bg-[#0b1220]"],
 [class*="bg-[#000000]"],
-[style*="#0C0C0C"],
+[style*="#0b1220"],
 [style*="#000000"],
 [style*="background: black"],
 [style*="background-color: black"] {
@@ -69,13 +69,13 @@ main,
   color: var(--om-text) !important;
 }
 
-[class*="bg-[#151515]"],
+[class*="bg-[#141d2e]"],
 [class*="bg-[#111111]"],
 [class*="bg-[#1C1C1C]"],
 [class*="bg-neutral-900"],
 [class*="bg-zinc-900"],
 [class*="bg-stone-900"],
-[style*="#151515"],
+[style*="#141d2e"],
 [style*="#111111"],
 [style*="#1C1C1C"] {
   background: var(--om-surface) !important;
@@ -87,35 +87,35 @@ main,
 [class*="bg-stone-800"],
 [style*="#1F1F1F"],
 [style*="#202020"],
-[style*="#262626"] {
+[style*="#26324c"] {
   background: var(--om-surface-2) !important;
 }
 
-[class*="border-[#262626]"],
-[class*="border-[#1E1E1E]"],
+[class*="border-[#26324c]"],
+[class*="border-[#26324c]"],
 [class*="border-neutral-"],
 [class*="border-zinc-"],
 [class*="border-stone-"],
-[style*="#262626"],
-[style*="#1E1E1E"] {
+[style*="#26324c"],
+[style*="#26324c"] {
   border-color: var(--om-border) !important;
 }
 
-[class*="text-[#F5F0E8]"],
-[class*="text-[#F8F5EF]"],
+[class*="text-[#e8edf5]"],
+[class*="text-[#eef2f7]"],
 [class*="text-white"],
-[style*="#F5F0E8"],
-[style*="#F8F5EF"] {
+[style*="#e8edf5"],
+[style*="#eef2f7"] {
   color: var(--om-text) !important;
 }
 
-[class*="text-[#9A9188]"],
-[class*="text-[#7A736B]"],
+[class*="text-[#94a3b8]"],
+[class*="text-[#94a3b8]"],
 [class*="text-neutral-"],
 [class*="text-zinc-"],
 [class*="text-stone-"],
-[style*="#9A9188"],
-[style*="#7A736B"] {
+[style*="#94a3b8"],
+[style*="#94a3b8"] {
   color: var(--om-sub) !important;
 }
 
