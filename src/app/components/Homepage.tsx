@@ -599,13 +599,6 @@ export function Homepage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-10 px-4 sm:px-6 border-t border-[#26324c] text-center">
-        <p className="font-black text-slate-300 mb-1">WatchedNotWatched</p>
-        <p className="text-slate-500 text-sm">Watch the story. Skip the trash.</p>
-        <p className="text-slate-700 text-xs mt-4">&copy; 2026 WatchedNotWatched. All rights reserved.</p>
-        <a href="https://openmirrorllc.com" target="_blank" rel="noopener noreferrer" className="inline-block mt-4 text-xs font-black uppercase tracking-[0.14em] text-slate-600 hover:text-slate-400 transition">Open Mirror LLC</a>
-      </footer>
     </div>
   );
 }
