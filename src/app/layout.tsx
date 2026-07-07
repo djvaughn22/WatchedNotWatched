@@ -30,7 +30,7 @@ export default function RootLayout({
       <body>
         <OpenMirrorNav site="WatchedNotWatched.com" />
         {children}
-        <OpenMirrorFooter siteName="WatchedNotWatched" tagline="Watch the story. Skip the trash." />
+        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="Watch the story. Skip the trash." accent="#22D3EE" />
       </body>
     </html>
   );

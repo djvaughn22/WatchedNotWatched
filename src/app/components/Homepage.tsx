@@ -247,11 +247,9 @@ export function Homepage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/90 -md border-b border-[#26324c]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-5">
-            <span className="font-black text-lg tracking-tight">WatchedNotWatched</span>
-            <a href="https://openmirrorllc.com" target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-xs font-black uppercase tracking-[0.12em] text-slate-500 hover:text-slate-300 transition">Open Mirror LLC</a>
+            <span className="font-black text-lg tracking-tight">WatchedNotWatched<span className="text-[#22D3EE]">.com</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="https://crossheartpray.com" target="_blank" rel="noopener noreferrer" className="hidden sm:inline text-xs font-black text-violet-400 hover:text-violet-300 transition">CrossHeartPray ✝️</a>
             <a
               href="#early-access"
               className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"

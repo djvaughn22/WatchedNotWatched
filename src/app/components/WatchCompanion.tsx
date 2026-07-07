@@ -485,7 +485,7 @@ export function WatchCompanion() {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#07090f]/95 -md border-b border-[#26324c]">
         <div className="max-w-2xl mx-auto px-4 flex items-center justify-between h-14">
-          <a href="/" className="font-black text-base tracking-tight">WatchedNotWatched</a>
+          <a href="/" className="font-black text-base tracking-tight">WatchedNotWatched<span className="text-[#22D3EE]">.com</span></a>
           <div className="flex items-center gap-3">
             {step === 'live' && (
               <button onClick={() => setVoiceOn((v) => !v)}
