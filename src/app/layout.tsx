@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import OpenMirrorFooter from "./OpenMirrorFooter";
+import OpenMirrorNav from "./OpenMirrorNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
+        <OpenMirrorNav site="WatchedNotWatched.com" />
         {children}
         <OpenMirrorFooter siteName="WatchedNotWatched" tagline="Watch the story. Skip the trash." />
       </body>
