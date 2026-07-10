@@ -128,7 +128,14 @@ export default function SearchExperience({ autoFocus = false }: { autoFocus?: bo
         )}
 
         {status === "done" && items.length === 0 && query.trim().length >= 2 && (
-          <p className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">No results for “{query.trim()}”.</p>
+          dataStatus === "sample" ? (
+            <div className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center">
+              <p className="text-sm font-semibold text-[#e8edf5]">Full movie &amp; show search isn’t turned on yet.</p>
+              <p className="mt-1 text-sm text-[#94a3b8]">Only a few sample titles are available right now. Try <em>Charade</em> or <em>Nosferatu</em>, or see <a href="/family-picks" className="text-[#22D3EE] hover:underline">Family Picks</a>.</p>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">No results for “{query.trim()}”.</p>
+          )
         )}
 
         {items.length > 0 && (
