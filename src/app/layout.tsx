@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import OpenMirrorFooter from "./OpenMirrorFooter";
 import OpenMirrorNav from "./OpenMirrorNav";
+import ProductNav from "./components/ProductNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WatchedNotWatched — Watch the story. Skip the trash.",
+  title: "WatchedNotWatched — Watch with confidence.",
   description:
-    "A clean-viewing layer for shows and movies you already have access to. AI-powered mute, skip, cover, and pause for profanity, sex, gore, blasphemy, and more.",
+    "Know what is in a movie or show, choose what fits your household, and find where to watch. Plus a working demonstration of automatic mute and skip on supported video.",
 };
 
 export default function RootLayout({
@@ -29,8 +30,9 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <OpenMirrorNav site="WatchedNotWatched.com" />
+        <ProductNav />
         {children}
-        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="Watch the story. Skip the trash." accent="#22D3EE" />
+        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="Watch with confidence." accent="#22D3EE" />
       </body>
     </html>
   );

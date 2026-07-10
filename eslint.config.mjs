@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Synced/vendored Open Mirror chrome — owned + linted in the hub repo,
+    // never edited here (see CLAUDE.md).
+    "src/app/OpenMirrorNav.tsx",
+    "src/app/OpenMirrorFooter.tsx",
+    "src/app/OpenMirrorTheme.tsx",
   ]),
 ]);
 

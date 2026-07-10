@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Homepage } from "./components/Homepage";
 
 export const metadata: Metadata = {
-  title: "WatchedNotWatched — Watch the story. Skip the trash.",
+  title: "WatchedNotWatched — Watch with confidence.",
   description:
-    "A clean-viewing layer for shows and movies you already have access to. AI-powered mute, skip, cover, and pause for profanity, sex, gore, blasphemy, and more.",
+    "Know what is in a movie or show, choose what fits your household, and find where to watch.",
 };
 
 export default function Page() {
