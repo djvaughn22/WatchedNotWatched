@@ -4,17 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { CATEGORY_LABELS } from "@/lib/filter/types";
 import { evaluateCompatibility } from "@/lib/compatibility";
 import { LEVEL_LABELS, isReviewed } from "@/lib/guidance";
+import { getEditorialStatus } from "@/lib/editorial-status";
 import type { MediaTitle, TrailerReference } from "@/lib/media/types";
 import { buildHandoff, PROVIDERS } from "@/lib/providers";
 import { useProfiles, useSaved } from "@/lib/useLocal";
-
-const DATA_STATUS_LABEL: Record<string, string> = {
-  live: "Live metadata",
-  cached: "Cached metadata",
-  editorial: "Editorially reviewed",
-  sample: "Sample record",
-  unavailable: "Unavailable",
-};
 
 export default function TitleDetailClient({ source, id, mediaType }: { source: string; id: string; mediaType: string }) {
   const [title, setTitle] = useState<MediaTitle | null>(null);
@@ -61,6 +54,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
   }
 
   const saved = isSaved(title.id);
+  const editorialStatus = getEditorialStatus(title);
   const reviewedCats = (title.guidance?.categories ?? []).filter((c) => isReviewed(c.level) && c.level !== "none-noted");
 
   const share = async () => {
@@ -117,12 +111,21 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           ) : <div className="flex h-full w-full items-center justify-center text-3xl">🎬</div>}
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-black text-[#e8edf5]">{title.title}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-black text-[#e8edf5]">{title.title}</h1>
+            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
+              editorialStatus.state === "reviewed" ? "border-[#22D3EE] text-[#22D3EE]"
+              : editorialStatus.state === "in-progress" ? "border-[#fbbf24] text-[#fbbf24]"
+              : "border-[#64748b] text-[#94a3b8]"
+            }`}>
+              {editorialStatus.state === "reviewed" ? "Reviewed"
+              : editorialStatus.state === "in-progress" ? "In review"
+              : editorialStatus.state === "basic-only" ? "Basic info"
+              : "Not reviewed"}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-[#94a3b8]">
             {title.mediaType === "series" ? "Series" : "Movie"}{title.releaseYear ? ` · ${title.releaseYear}` : ""}{title.runtimeMinutes ? ` · ${title.runtimeMinutes} min` : ""}{title.officialRating ? ` · ${title.officialRating}` : ""}
-          </p>
-          <p className="mt-1 inline-block rounded-full border border-[#26324c] px-2 py-0.5 text-[11px] text-[#94a3b8]">
-            {DATA_STATUS_LABEL[title.dataStatus] ?? title.dataStatus}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={() => toggle({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl })}
@@ -142,26 +145,31 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
       </div>
 
       {/* 2. Compatibility */}
-      {compat && active && (
-        <section className={`mt-6 rounded-2xl border bg-[#141d2e] p-5 ${verdictColor}`}>
+      {active && (
+        <section className={`mt-6 rounded-2xl border bg-[#141d2e] p-5 ${compat ? verdictColor : "border-[#26324c] text-[#e8edf5]"}`}>
           <p className="text-xs font-black uppercase tracking-widest text-[#94a3b8]">{active.name} profile</p>
-          <p className="mt-1 text-lg font-black">{compat.headline}</p>
-          <ul className="mt-2 space-y-1 text-sm text-[#e8edf5]">
-            {compat.reasons.map((r, i) => <li key={i}>· {r}</li>)}
-          </ul>
+          {compat ? (
+            <>
+              <p className="mt-1 text-lg font-black">{compat.headline}</p>
+              <ul className="mt-2 space-y-1 text-sm text-[#e8edf5]">
+                {compat.reasons.map((r, i) => <li key={i}>· {r}</li>)}
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-lg font-black">Not enough information</p>
+              <p className="mt-2 text-sm text-[#e8edf5]">WatchedNotWatched has not completed detailed guidance for this title. Use your best judgment and other resources before deciding.</p>
+            </>
+          )}
         </section>
       )}
 
       {/* 3/4. Guidance */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#e8edf5]">Content guidance</h2>
-          {title.dataStatus === "editorial" && (
-            <span className="rounded-full border border-[#22D3EE] px-2 py-0.5 text-[11px] text-[#22D3EE]">In review</span>
-          )}
-        </div>
+        <h2 className="text-sm font-bold text-[#e8edf5]">Content guidance</h2>
         {reviewedCats.length > 0 ? (
           <>
+            <p className="mt-1 text-xs font-semibold text-[#22D3EE]">Reviewed by WatchedNotWatched</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {reviewedCats.map((c) => (
                 <span key={c.category} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#e8edf5]">
@@ -172,10 +180,15 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">{title.guidance?.overallNote}</p>
           </>
         ) : (
-          <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">
-            Detailed WatchedNotWatched guidance is not yet available for this title. Missing guidance means we don&apos;t have enough information to recommend it for family viewing. Use your best judgment and other resources.
-            {title.officialRating ? ` Official rating: ${title.officialRating}.` : ""}
-          </p>
+          <>
+            <p className="mt-2 text-sm font-semibold text-[#e8edf5]">{editorialStatus.headline}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#94a3b8]">
+              {editorialStatus.description}
+            </p>
+            {title.officialRating && (
+              <p className="mt-2 text-xs text-[#64748b]">Official rating: {title.officialRating}. Official age ratings are not the same as WatchedNotWatched guidance.</p>
+            )}
+          </>
         )}
       </section>
 
@@ -248,11 +261,24 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
         )}
       </section>
 
-      {/* 9. Attribution */}
+      {/* Sources and Credits */}
       {title.attribution && title.attribution.length > 0 && (
-        <p className="mt-6 text-[11px] leading-relaxed text-[#64748b]">
-          {title.attribution.map((a) => a.text).join(" ")}
-        </p>
+        <section className="mt-6 border-t border-[#26324c] pt-4">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[#64748b]">Sources</h3>
+          <ul className="mt-2 space-y-1">
+            {title.attribution.map((a, i) => (
+              <li key={i} className="text-[11px] leading-relaxed text-[#64748b]">
+                {a.url ? (
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#94a3b8]">
+                    {a.text}
+                  </a>
+                ) : (
+                  a.text
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
