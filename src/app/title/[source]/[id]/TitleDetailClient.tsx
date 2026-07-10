@@ -162,7 +162,20 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             <p className="mt-2 text-xs text-[#94a3b8]">Availability and subscriptions vary by region and provider. WatchedNotWatched opens the provider — it does not connect your account.</p>
           </>
         ) : (
-          <p className="mt-2 text-sm text-[#94a3b8]">No provider availability found for your region{title.dataStatus === "sample" ? " (sample record)" : ""}.</p>
+          <>
+            <p className="mt-2 text-sm text-[#94a3b8]">No live availability data for this title. Search the major providers:</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {["netflix", "prime", "disney", "max", "hulu", "appletv", "paramount", "peacock", "youtube", "tubi"].map((pid) => {
+                const h = buildHandoff({ providerId: pid, title: title.title });
+                return (
+                  <a key={pid} href={h.url} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm font-semibold text-[#e8edf5] hover:border-[#22D3EE]">
+                    {h.label}
+                  </a>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-[#94a3b8]">Availability and subscriptions vary by region and provider. WatchedNotWatched opens the provider — it does not connect your account.</p>
+          </>
         )}
       </section>
 
