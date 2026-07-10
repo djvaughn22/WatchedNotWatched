@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTmdbAdapter } from "@/lib/media/tmdb";
-import { createCinemetaAdapter } from "@/lib/media/cinemeta";
+import { createTvmazeAdapter } from "@/lib/media/tvmaze";
+import { createWikidataAdapter } from "@/lib/media/wikidata";
 import { sampleGetTitle } from "@/data/catalog";
 import type { MediaType } from "@/lib/media/types";
 
 export async function GET(req: NextRequest) {
-  const source = req.nextUrl.searchParams.get("source") ?? "cinemeta";
+  const source = req.nextUrl.searchParams.get("source") ?? "wikidata";
   const id = req.nextUrl.searchParams.get("id") ?? "";
   const mediaType = (req.nextUrl.searchParams.get("mediaType") as MediaType) || "movie";
   if (!id) return NextResponse.json(null, { status: 400 });
@@ -14,11 +14,11 @@ export async function GET(req: NextRequest) {
     if (source === "sample") {
       return NextResponse.json(sampleGetTitle(id));
     }
-    if (source === "tmdb" && (process.env.TMDB_ACCESS_TOKEN || process.env.TMDB_API_KEY)) {
-      return NextResponse.json(await createTmdbAdapter().getTitle(id, mediaType));
+    if (source === "tvmaze") {
+      return NextResponse.json(await createTvmazeAdapter().getTitle(id, mediaType));
     }
-    if (source === "cinemeta") {
-      return NextResponse.json(await createCinemetaAdapter().getTitle(id, mediaType));
+    if (source === "wikidata") {
+      return NextResponse.json(await createWikidataAdapter().getTitle(id, mediaType));
     }
   } catch {
     return NextResponse.json(null, { status: 200 });

@@ -142,36 +142,42 @@ export default function SearchExperience({ autoFocus = false }: { autoFocus?: bo
           <ul className="grid gap-3 sm:grid-cols-2">
             {items.map((it) => {
               const saved = isSaved(it.id);
+              const statusLabel = it.dataStatus === "editorial" ? "In review" : it.dataStatus === "sample" ? "Sample" : undefined;
               return (
-                <li key={it.id} className="flex gap-3 rounded-xl border border-[#26324c] bg-[#141d2e] p-3">
-                  <div className="h-24 w-16 shrink-0 overflow-hidden rounded-md bg-[#0b1220]">
-                    {it.posterUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={it.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-2xl">🎬</div>
-                    )}
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="truncate text-sm font-bold text-[#e8edf5]">{it.title}</p>
-                    <p className="text-xs text-[#94a3b8]">
-                      {it.mediaType === "series" ? "Series" : "Movie"}{it.releaseYear ? ` · ${it.releaseYear}` : ""}{it.officialRating ? ` · ${it.officialRating}` : ""}
-                    </p>
-                    <div className="mt-auto flex gap-2 pt-2">
-                      <Link
-                        href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`}
-                        className="rounded-full bg-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#06131a]"
-                      >
-                        Details
-                      </Link>
-                      <button
-                        onClick={() => toggle({ id: it.id, source: it.source, sourceId: it.sourceId, mediaType: it.mediaType, title: it.title, releaseYear: it.releaseYear, posterUrl: it.posterUrl })}
-                        aria-pressed={saved}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}
-                      >
-                        {saved ? "Saved ✓" : "Save"}
-                      </button>
+                <li key={it.id} className="flex flex-col gap-3 rounded-xl border border-[#26324c] bg-[#141d2e] p-3">
+                  <div className="flex gap-3">
+                    <div className="h-24 w-16 shrink-0 overflow-hidden rounded-md bg-[#0b1220]">
+                      {it.posterUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={it.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-2xl">🎬</div>
+                      )}
                     </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <p className="truncate text-sm font-bold text-[#e8edf5]">{it.title}</p>
+                      <p className="text-xs text-[#94a3b8]">
+                        {it.mediaType === "series" ? "Series" : "Movie"}{it.releaseYear ? ` · ${it.releaseYear}` : ""}{it.officialRating ? ` · ${it.officialRating}` : ""}
+                      </p>
+                      {statusLabel && (
+                        <p className="mt-1 text-[11px] text-[#64748b]">{statusLabel}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`}
+                      className="rounded-full bg-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#06131a]"
+                    >
+                      Details
+                    </Link>
+                    <button
+                      onClick={() => toggle({ id: it.id, source: it.source, sourceId: it.sourceId, mediaType: it.mediaType, title: it.title, releaseYear: it.releaseYear, posterUrl: it.posterUrl })}
+                      aria-pressed={saved}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}
+                    >
+                      {saved ? "Saved ✓" : "Save"}
+                    </button>
                   </div>
                 </li>
               );

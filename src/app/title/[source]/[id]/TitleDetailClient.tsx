@@ -21,6 +21,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
   const [status, setStatus] = useState<"loading" | "error" | "done">("loading");
   const [trailer, setTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
   const [shareMsg, setShareMsg] = useState("");
+  const [editorialMsg, setEditorialMsg] = useState("");
   const { active } = useProfiles();
   const { isSaved, toggle } = useSaved();
 
@@ -72,6 +73,34 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
     } catch { /* ignore */ }
   };
 
+  const addToEditorial = async () => {
+    if (!title) return;
+    try {
+      const res = await fetch("/api/editorial/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source,
+          sourceId: id,
+          item: {
+            id: title.id,
+            source,
+            sourceId: id,
+            mediaType,
+            title: title.title,
+            releaseYear: title.releaseYear,
+            posterUrl: title.posterUrl,
+            dataStatus: "live" as const,
+          },
+        }),
+      });
+      if (res.ok) {
+        setEditorialMsg("Added to review catalog ✓");
+        setTimeout(() => setEditorialMsg(""), 2000);
+      }
+    } catch { /* ignore */ }
+  };
+
   const verdictColor =
     compat?.verdict === "good-match" ? "border-[#22D3EE] text-[#22D3EE]"
     : compat?.verdict === "outside-profile" ? "border-[#94a3b8] text-[#e8edf5]"
@@ -95,7 +124,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           <p className="mt-1 inline-block rounded-full border border-[#26324c] px-2 py-0.5 text-[11px] text-[#94a3b8]">
             {DATA_STATUS_LABEL[title.dataStatus] ?? title.dataStatus}
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={() => toggle({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl })}
               className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8]"}`}>
               {saved ? "Saved ✓" : "Save"}
@@ -103,6 +132,11 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             <button onClick={share} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
               {shareMsg || "Share"}
             </button>
+            {source !== "sample" && (
+              <button onClick={addToEditorial} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
+                {editorialMsg || "Add to review"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -120,20 +154,29 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
 
       {/* 3/4. Guidance */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
-        <h2 className="text-sm font-bold text-[#e8edf5]">Content guidance</h2>
-        {reviewedCats.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {reviewedCats.map((c) => (
-              <span key={c.category} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#e8edf5]">
-                {LEVEL_LABELS[c.level]} {CATEGORY_LABELS[c.category].toLowerCase()}
-              </span>
-            ))}
-          </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#e8edf5]">Content guidance</h2>
+          {title.dataStatus === "editorial" && (
+            <span className="rounded-full border border-[#22D3EE] px-2 py-0.5 text-[11px] text-[#22D3EE]">In review</span>
+          )}
+        </div>
+        {reviewedCats.length > 0 ? (
+          <>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {reviewedCats.map((c) => (
+                <span key={c.category} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#e8edf5]">
+                  {LEVEL_LABELS[c.level]} {CATEGORY_LABELS[c.category].toLowerCase()}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">{title.guidance?.overallNote}</p>
+          </>
+        ) : (
+          <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">
+            Detailed WatchedNotWatched guidance is not yet available for this title. Missing guidance means we don&apos;t have enough information to recommend it for family viewing. Use your best judgment and other resources.
+            {title.officialRating ? ` Official rating: ${title.officialRating}.` : ""}
+          </p>
         )}
-        <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">
-          {title.guidance?.overallNote ?? "Detailed guidance is not available for this title."}
-          {title.officialRating ? ` Official rating: ${title.officialRating}. An official age rating is not the same as detailed WatchedNotWatched guidance.` : ""}
-        </p>
       </section>
 
       {/* 6. Where to watch */}
