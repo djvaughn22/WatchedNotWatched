@@ -104,11 +104,16 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       {/* 1. Identity */}
       <div className="flex gap-4">
-        <div className="h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-[#141d2e]">
+        <div className="h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#26324c]">
           {title.posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={title.posterUrl} alt="" className="h-full w-full object-cover" />
-          ) : <div className="flex h-full w-full items-center justify-center text-3xl">🎬</div>}
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
+              <div className="text-xl">📽</div>
+              <div className="text-[9px] font-semibold text-[#64748b]">No image</div>
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-3">
