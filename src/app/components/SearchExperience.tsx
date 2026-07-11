@@ -18,8 +18,18 @@ function readRecent(): string[] {
   }
 }
 
-export default function SearchExperience({ autoFocus = false }: { autoFocus?: boolean }) {
-  const [query, setQuery] = useState("");
+export default function SearchExperience({
+  autoFocus = false,
+  initialQuery = "",
+  syncUrl = false,
+}: {
+  autoFocus?: boolean;
+  /** Seed the box from a ?q= deep link. */
+  initialQuery?: string;
+  /** Keep ?q= in the address bar so searches are shareable. */
+  syncUrl?: boolean;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
   const [dataStatus, setDataStatus] = useState<SearchResult["dataStatus"]>("live");
@@ -58,6 +68,14 @@ export default function SearchExperience({ autoFocus = false }: { autoFocus?: bo
     const t = setTimeout(() => runSearch(query), 350);
     return () => clearTimeout(t);
   }, [query, runSearch]);
+
+  // Keep ?q= shareable without triggering a navigation.
+  useEffect(() => {
+    if (!syncUrl || typeof window === "undefined") return;
+    const q = query.trim();
+    const url = q.length >= 2 ? `?q=${encodeURIComponent(q)}` : window.location.pathname;
+    window.history.replaceState(null, "", url);
+  }, [query, syncUrl]);
 
   const commitRecent = (q: string) => {
     const next = [q, ...readRecent().filter((x) => x !== q)].slice(0, 6);
