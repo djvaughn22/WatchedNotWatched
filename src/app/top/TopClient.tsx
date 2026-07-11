@@ -24,6 +24,7 @@ export default function TopClient() {
   const [kind, setKind] = useState<MediaKind>("movie");
   const [decade, setDecade] = useState<DecadeId | null>(null); // null = all time
   const [genreId, setGenreId] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false); // false = quick Top 22, true = full 222
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "unsupported" | "done">("loading");
   const [dragOver, setDragOver] = useState<Zone | null>(null);
@@ -43,6 +44,7 @@ export default function TopClient() {
     if (params.get("type") === "series") setKind("series");
     const g = Number(params.get("genre"));
     if (g) setGenreId(g);
+    if (params.get("n") === "222") setShowAll(true);
     setUrlApplied(true);
   }, []);
 
@@ -53,8 +55,9 @@ export default function TopClient() {
     if (decade) q.set("decade", decade);
     if (genreId) q.set("genre", String(genreId));
     if (kind === "series") q.set("type", "series");
+    if (showAll) q.set("n", "222");
     window.history.replaceState(null, "", `?${q.toString()}`);
-  }, [decade, genreId, kind, urlApplied]);
+  }, [decade, genreId, kind, showAll, urlApplied]);
 
   useEffect(() => {
     if (!urlApplied) return;
@@ -63,6 +66,7 @@ export default function TopClient() {
     const q = new URLSearchParams({ type: kind });
     if (decade) q.set("decade", decade);
     if (genreId) q.set("genre", String(genreId));
+    if (showAll) q.set("n", "222");
     fetch(`/api/top?${q.toString()}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data: { items?: SearchResultItem[]; supported?: boolean }) => {
@@ -77,7 +81,7 @@ export default function TopClient() {
         if (e?.name !== "AbortError") setStatus("error");
       });
     return () => controller.abort();
-  }, [kind, decade, genreId, urlApplied]);
+  }, [kind, decade, genreId, showAll, urlApplied]);
 
   const ranked = useMemo(() => items.map((it, i) => ({ it, rank: i + 1 })), [items]);
 
@@ -179,6 +183,12 @@ export default function TopClient() {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="text-sm font-black text-[#e8edf5]">
                 Top {items.length} {listLabel}
+                <button
+                  onClick={() => setShowAll(!showAll)}
+                  className="ml-2 rounded-full border border-[#22D3EE]/50 px-2.5 py-0.5 text-xs font-bold text-[#22D3EE] hover:bg-[#22D3EE]/10"
+                >
+                  {showAll ? "Back to Top 22" : "See all 222 →"}
+                </button>
               </p>
               <p className="text-sm font-black text-[#22D3EE]">
                 Seen {watched.length} of {items.length}
@@ -208,8 +218,16 @@ export default function TopClient() {
               {toWatch.length === 0 ? (
                 <div className="rounded-xl border border-[#26324c] bg-[#141d2e] p-6 text-center">
                   <p className="text-sm font-bold text-[#e8edf5]">You’ve seen all {items.length}.</p>
-                  <p className="mt-1 text-xs text-[#94a3b8]">
-                    Pick another decade or genre above, or see{" "}
+                  {!showAll ? (
+                    <button
+                      onClick={() => setShowAll(true)}
+                      className="mt-3 rounded-full border border-[#22D3EE]/50 px-4 py-1.5 text-xs font-bold text-[#22D3EE] hover:bg-[#22D3EE]/10"
+                    >
+                      Keep going — see all 222 →
+                    </button>
+                  ) : null}
+                  <p className="mt-2 text-xs text-[#94a3b8]">
+                    Or pick another decade or genre above, or see{" "}
                     <Link href="/foryou" className="text-[#22D3EE] hover:underline">picks based on your 👍s</Link>.
                   </p>
                 </div>
