@@ -16,10 +16,21 @@ Do not revive filtering.
 
 ## Routes
 
-`/` (search-first home + library snapshot) · `/search` · `/library` (views,
-filters, sort, bulk actions, export) · `/saved` → redirects to `/library` ·
-`/title/[source]/[id]` · `/about` · `/legal` · APIs: `/api/search`,
-`/api/title`, `/api/similar`, `/api/trailer`.
+`/` (search-first home + Top-100 links + library snapshot) · `/search` ·
+`/top` (Top 100 board: decades × genres, drag/tap into Watched vs Not Watched
+columns with a live scoreboard; horror + adult excluded from every query) ·
+`/library` (views, filters, sort, bulk actions, export) · `/saved` → redirects
+to `/library` · `/title/[source]/[id]` · `/about` · `/legal` · APIs:
+`/api/search`, `/api/title`, `/api/similar`, `/api/trailer`, `/api/top`.
+
+Statuses are three: `want_to_watch` / `watched` / `prob_not` ("Prob Not" =
+never watched, not interested — distinct from Not for Me = watched and hated).
+One color per decision everywhere: Watched cyan `#22D3EE`, Want to Watch blue
+`#60A5FA`, Prob Not slate `#64748B` (`TriageButtons.tsx`).
+
+Known Next 16 gotcha: a `Suspense` + `useSearchParams` boundary can postpone
+at dev SSR and never resume (page stuck on fallback, no errors). `/top` reads
+deep links from `window.location` on mount instead.
 
 ## Data model (localStorage)
 
