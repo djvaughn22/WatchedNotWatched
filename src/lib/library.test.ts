@@ -107,6 +107,20 @@ describe("views", () => {
     expect(inView(yes, "watched")).toBe(true);
     expect(inView(want, "all")).toBe(true);
   });
+
+  it("prob_not is its own status and view, never watched", () => {
+    let store = setStatus(emptyStore(), ref("tmdb:9"), "prob_not", "2026-01-05T00:00:00Z");
+    const e = getEntry(store, "tmdb:9")!;
+    expect(e.status).toBe("prob_not");
+    expect(e.watchedAt).toBeUndefined();
+    expect(inView(e, "prob_not")).toBe(true);
+    expect(inView(e, "want_to_watch")).toBe(false);
+    expect(inView(e, "watched")).toBe(false);
+    // changing your mind keeps the add date
+    store = setStatus(store, ref("tmdb:9"), "watched", "2026-01-06T00:00:00Z");
+    expect(getEntry(store, "tmdb:9")?.addedAt).toBe("2026-01-05T00:00:00Z");
+    expect(getEntry(store, "tmdb:9")?.watchedAt).toBe("2026-01-06T00:00:00Z");
+  });
 });
 
 describe("sanitizeStore", () => {

@@ -12,6 +12,7 @@ import {
   type TitleRef,
 } from "@/lib/library";
 import TitleCard from "@/app/components/TitleCard";
+import TriageButtons from "@/app/components/TriageButtons";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -41,7 +42,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
   const [fallbackTrailer, setFallbackTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
   const [similar, setSimilar] = useState<{ items: SearchResultItem[]; supported: boolean } | null>(null);
   const [shareMsg, setShareMsg] = useState("");
-  const { entryFor, mark, take, again, hydrated } = useLibrary();
+  const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
 
   useEffect(() => {
     let alive = true;
@@ -133,22 +134,9 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             <p className="mt-1 text-xs text-[#64748b]">{title.genres.join(" · ")}</p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={() => mark(ref, "want_to_watch")}
-              aria-pressed={entry?.status === "want_to_watch"}
-              className={`rounded-full px-4 py-2 text-sm font-bold ${entry?.status === "want_to_watch" ? "bg-[#22D3EE] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"}`}
-            >
-              {entry?.status === "want_to_watch" ? "On your list ✓" : "Want to Watch"}
-            </button>
-            <button
-              onClick={() => mark(ref, "watched")}
-              aria-pressed={entry?.status === "watched"}
-              className={`rounded-full px-4 py-2 text-sm font-bold ${entry?.status === "watched" ? "bg-[#22D3EE] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"}`}
-            >
-              {entry?.status === "watched" ? "Watched ✓" : "Watched"}
-            </button>
-            <button onClick={share} className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <TriageButtons titleRef={ref} entry={entry} onMark={mark} onClear={remove} size="lg" />
+            <button onClick={share} className="rounded-lg border border-[#26324c] px-4 py-2.5 text-sm font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
               {shareMsg || "Share"}
             </button>
           </div>
@@ -276,7 +264,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {similar.items.slice(0, 8).map((it) => (
               <li key={it.id}>
-                <TitleCard item={it} entry={hydrated ? entryFor(it.id) : undefined} onMark={mark} onTake={take} onAgain={again} />
+                <TitleCard item={it} entry={hydrated ? entryFor(it.id) : undefined} onMark={mark} onClear={remove} onTake={take} onAgain={again} />
               </li>
             ))}
           </ul>

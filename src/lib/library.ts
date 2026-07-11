@@ -2,7 +2,7 @@
 // the logic is testable; localStorage wiring lives in useLocal.ts.
 // Saved on this device only. Export a backup anytime.
 
-export type LibraryStatus = "want_to_watch" | "watched";
+export type LibraryStatus = "want_to_watch" | "watched" | "prob_not";
 export type MyTake = "loved" | "liked" | "fine" | "not_for_me";
 export type Again = "yes" | "maybe" | "no";
 
@@ -32,7 +32,7 @@ export const LIBRARY_KEY = "wnw.library.v2";
 export const LEGACY_SAVED_KEY = "wnw.saved.v1";
 export const LEGACY_STATUS_KEY = "wnw.status.v1";
 
-const STATUSES = new Set<LibraryStatus>(["want_to_watch", "watched"]);
+const STATUSES = new Set<LibraryStatus>(["want_to_watch", "watched", "prob_not"]);
 const TAKES = new Set<MyTake>(["loved", "liked", "fine", "not_for_me"]);
 const AGAINS = new Set<Again>(["yes", "maybe", "no"]);
 
@@ -52,6 +52,7 @@ export const AGAIN_LABELS: Record<Again, string> = {
 export const STATUS_LABELS: Record<LibraryStatus, string> = {
   want_to_watch: "Want to Watch",
   watched: "Watched",
+  prob_not: "Prob Not",
 };
 
 export function emptyStore(): LibraryStore {
@@ -167,7 +168,8 @@ export type LibraryView =
   | "watched"
   | "watch_again"
   | "favorites"
-  | "not_for_me";
+  | "not_for_me"
+  | "prob_not";
 
 export const VIEW_LABELS: Record<LibraryView, string> = {
   all: "All",
@@ -176,6 +178,7 @@ export const VIEW_LABELS: Record<LibraryView, string> = {
   watch_again: "Watch Again",
   favorites: "Favorites",
   not_for_me: "Not for Me",
+  prob_not: "Prob Not",
 };
 
 export function inView(e: LibraryEntry, view: LibraryView): boolean {
@@ -191,7 +194,9 @@ export function inView(e: LibraryEntry, view: LibraryView): boolean {
     case "favorites":
       return e.myTake === "loved";
     case "not_for_me":
-      return e.myTake === "not_for_me";
+      return e.myTake === "not_for_me"; // watched it, hated it
+    case "prob_not":
+      return e.status === "prob_not"; // never watched, not interested
   }
 }
 

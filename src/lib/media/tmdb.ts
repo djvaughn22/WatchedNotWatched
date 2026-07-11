@@ -104,7 +104,16 @@ interface TmdbSearchResponse {
   }>;
 }
 
-export function createTmdbAdapter(): MediaMetadataAdapter {
+export interface TmdbAdapter extends MediaMetadataAdapter {
+  discoverTop(opts: {
+    mediaType: "movie" | "series";
+    decade?: string;
+    genreId?: number;
+    page: number;
+  }): Promise<SearchResultItem[]>;
+}
+
+export function createTmdbAdapter(): TmdbAdapter {
   const region = process.env.DEFAULT_WATCH_REGION || "US";
 
   async function searchTitles(query: string, options?: SearchOptions): Promise<SearchResult> {
@@ -183,6 +192,51 @@ export function createTmdbAdapter(): MediaMetadataAdapter {
     return extractProviders({ "watch/providers": { results: d.results } }, r).availability;
   }
 
+  /**
+   * Top titles for a decade and/or genre, ranked by TMDB user ratings with a
+   * vote floor so obscure titles don't outrank classics. Horror and adult
+   * content are always excluded. One call = one TMDB page (20 titles).
+   */
+  async function discoverTop(opts: {
+    mediaType: "movie" | "series";
+    decade?: string; // "1980" … "2020"
+    genreId?: number;
+    page: number;
+  }): Promise<SearchResultItem[]> {
+    const isTv = opts.mediaType === "series";
+    const dateField = isTv ? "first_air_date" : "primary_release_date";
+    const params: Record<string, string> = {
+      language: "en-US",
+      sort_by: "vote_average.desc",
+      "vote_count.gte": isTv ? "200" : "500",
+      include_adult: "false",
+      without_genres: "27", // no horror, per product rule
+      page: String(opts.page),
+    };
+    if (opts.decade) {
+      params[`${dateField}.gte`] = `${opts.decade}-01-01`;
+      params[`${dateField}.lte`] = `${Number(opts.decade) + 9}-12-31`;
+    }
+    if (opts.genreId) params.with_genres = String(opts.genreId);
+
+    const data = await tmdbFetch<TmdbListResponse>(isTv ? "/discover/tv" : "/discover/movie", params);
+    return (data?.results ?? [])
+      .map((r) => {
+        const title = (r.title ?? r.name ?? "").trim();
+        return {
+          id: `tmdb:${r.id}`,
+          source: "tmdb",
+          sourceId: String(r.id),
+          mediaType: opts.mediaType as MediaType,
+          title,
+          releaseYear: yearOf(r.release_date ?? r.first_air_date),
+          posterUrl: img(r.poster_path, "w342"),
+          dataStatus: "live" as const,
+        };
+      })
+      .filter((r) => r.title);
+  }
+
   /** Similar + recommended titles, deduped, recommendations first. */
   async function getSimilar(sourceId: string, mediaType: MediaType): Promise<SearchResultItem[]> {
     const isTv = mediaType === "series" || mediaType === "episode";
@@ -213,7 +267,7 @@ export function createTmdbAdapter(): MediaMetadataAdapter {
     return items;
   }
 
-  return { id: "tmdb", searchTitles, getTitle, getProviders, getSimilar };
+  return { id: "tmdb", searchTitles, getTitle, getProviders, getSimilar, discoverTop };
 }
 
 interface TmdbListResponse {

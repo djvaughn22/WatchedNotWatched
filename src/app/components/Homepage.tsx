@@ -4,6 +4,7 @@ import Link from "next/link";
 import SearchExperience from "./SearchExperience";
 import { useLibrary } from "@/lib/useLocal";
 import { inView, VIEW_LABELS, type LibraryView } from "@/lib/library";
+import { DECADES } from "@/lib/media/genres";
 
 const SNAPSHOT_VIEWS: LibraryView[] = ["want_to_watch", "watched", "watch_again", "favorites"];
 
@@ -21,6 +22,31 @@ export function Homepage() {
           </h1>
           <div className="mx-auto mt-7 max-w-3xl text-left">
             <SearchExperience autoFocus />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[#26324c] px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="text-sm font-black uppercase tracking-widest text-[#94a3b8]">
+            How many have you seen?
+          </h2>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {DECADES.map((d) => (
+              <Link
+                key={d.id}
+                href={`/top?decade=${d.id}`}
+                className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-bold text-[#e8edf5] transition-colors hover:border-[#22D3EE] hover:text-[#22D3EE]"
+              >
+                Top 100 of the {d.label}
+              </Link>
+            ))}
+            <Link
+              href="/top"
+              className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-bold text-[#e8edf5] transition-colors hover:border-[#22D3EE] hover:text-[#22D3EE]"
+            >
+              By genre →
+            </Link>
           </div>
         </div>
       </section>

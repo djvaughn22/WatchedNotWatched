@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import {
   AGAIN_LABELS,
   MY_TAKE_LABELS,
+  STATUS_LABELS,
   VIEW_LABELS,
   inView,
   type Again,
@@ -19,7 +20,7 @@ import {
 import { useLibrary } from "@/lib/useLocal";
 import { emailSummaryUrl, exportCsv, exportJson, exportMarkdown, shareSummary } from "@/lib/export";
 
-const VIEWS: LibraryView[] = ["all", "want_to_watch", "watched", "watch_again", "favorites", "not_for_me"];
+const VIEWS: LibraryView[] = ["all", "want_to_watch", "watched", "watch_again", "favorites", "not_for_me", "prob_not"];
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
 
@@ -113,7 +114,7 @@ export default function LibraryClient() {
 
   const selectedEntries = entries.filter((e) => selected.has(e.id));
 
-  const bulkMark = (status: "watched" | "want_to_watch") => {
+  const bulkMark = (status: "watched" | "want_to_watch" | "prob_not") => {
     for (const e of selectedEntries) mark(e, status);
     exitSelection();
   };
@@ -259,7 +260,8 @@ export default function LibraryClient() {
         <div className="sticky top-14 z-30 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#22D3EE] bg-[#0e1626] p-3 text-xs">
           <span className="font-bold text-[#e8edf5]">{selected.size} selected</span>
           <button onClick={() => bulkMark("watched")} className="rounded-full bg-[#22D3EE] px-3 py-1.5 font-bold text-[#06131a]">Mark Watched</button>
-          <button onClick={() => bulkMark("want_to_watch")} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#e8edf5]">Want to Watch</button>
+          <button onClick={() => bulkMark("want_to_watch")} className="rounded-full border border-[#60A5FA] px-3 py-1.5 font-semibold text-[#60A5FA]">Want to Watch</button>
+          <button onClick={() => bulkMark("prob_not")} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8]">Prob Not</button>
           {AGAINS.map((a) => (
             <button key={a} onClick={() => bulkAgain(a)} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
               Again: {AGAIN_LABELS[a]}
@@ -308,20 +310,20 @@ export default function LibraryClient() {
                   {e.mediaType === "series" ? "TV" : "Movie"}{e.releaseYear ? ` · ${e.releaseYear}` : ""}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${e.status === "watched" ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#94a3b8] text-[#94a3b8]"}`}>
-                    {e.status === "watched" ? "Watched" : "Want to Watch"}
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${e.status === "watched" ? "border-[#22D3EE] text-[#22D3EE]" : e.status === "want_to_watch" ? "border-[#60A5FA] text-[#60A5FA]" : "border-[#64748B] text-[#94a3b8]"}`}>
+                    {STATUS_LABELS[e.status]}
                   </span>
                   {e.myTake && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">{MY_TAKE_LABELS[e.myTake]}</span>}
                   {e.again && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">Again: {AGAIN_LABELS[e.again]}</span>}
                 </div>
                 {!selecting && (
                   <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                    {e.status === "want_to_watch" ? (
+                    {e.status !== "watched" ? (
                       <button onClick={() => mark(e, "watched")} className="rounded-full bg-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#06131a]">
                         Mark Watched
                       </button>
                     ) : (
-                      <button onClick={() => mark(e, "want_to_watch")} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
+                      <button onClick={() => mark(e, "want_to_watch")} className="rounded-full border border-[#60A5FA]/60 px-3 py-1.5 text-xs font-semibold text-[#60A5FA]">
                         Move to Want to Watch
                       </button>
                     )}

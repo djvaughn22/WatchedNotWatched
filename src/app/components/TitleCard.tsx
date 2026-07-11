@@ -1,8 +1,9 @@
 "use client";
 
-// Poster-forward title card with one-tap logging. Used by search results and
-// similar-title rails. Marking Watched reveals optional My Take / Again chips
-// right on the card — rate it in two more taps or just keep going.
+// Poster-forward title card with one-tap triage. Used by search results,
+// Top 100 grids, and similar-title rails. The card border takes the color of
+// your decision; marking Watched reveals My Take / Again chips right on the
+// card — rate it in two more taps or just keep going.
 
 import Link from "next/link";
 import type { SearchResultItem } from "@/lib/media/types";
@@ -15,6 +16,7 @@ import {
   type MyTake,
   type TitleRef,
 } from "@/lib/library";
+import TriageButtons, { STATUS_COLORS } from "./TriageButtons";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -35,20 +37,29 @@ export default function TitleCard({
   item,
   entry,
   onMark,
+  onClear,
   onTake,
   onAgain,
+  rank,
 }: {
   item: SearchResultItem;
   entry: LibraryEntry | undefined;
   onMark: (ref: TitleRef, status: LibraryStatus) => void;
+  onClear: (id: string) => void;
   onTake: (id: string, take: MyTake | undefined) => void;
   onAgain: (id: string, again: Again | undefined) => void;
+  /** 1-based position for Top-100 grids. */
+  rank?: number;
 }) {
   const status = entry?.status;
   const detailHref = `/title/${item.source}/${item.sourceId}?mediaType=${item.mediaType}`;
+  const borderColor = status ? STATUS_COLORS[status] : "#26324c";
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-[#26324c] bg-[#141d2e]">
+    <div
+      className={`flex flex-col overflow-hidden rounded-xl border bg-[#141d2e] transition-opacity ${status === "prob_not" ? "opacity-55" : ""}`}
+      style={{ borderColor }}
+    >
       <Link href={detailHref} className="relative block aspect-[2/3] bg-[#0b1220]">
         {item.posterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -59,45 +70,32 @@ export default function TitleCard({
             <span className="text-xs font-semibold leading-snug text-[#94a3b8]">{item.title}</span>
           </div>
         )}
+        {rank !== undefined && (
+          <span className="absolute right-2 top-2 rounded-lg bg-[#0b1220]/90 px-2 py-0.5 text-xs font-black text-[#e8edf5]">
+            #{rank}
+          </span>
+        )}
         {status && (
-          <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black ${status === "watched" ? "bg-[#22D3EE] text-[#06131a]" : "bg-[#0b1220]/90 text-[#22D3EE] border border-[#22D3EE]"}`}>
-            {status === "watched" ? "Watched" : "Want to Watch"}
+          <span
+            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black text-[#06131a]"
+            style={{ backgroundColor: STATUS_COLORS[status] }}
+          >
+            {status === "watched" ? "Watched" : status === "want_to_watch" ? "On your list" : "Prob Not"}
           </span>
         )}
       </Link>
 
       <div className="flex flex-1 flex-col gap-2 p-2.5">
         <Link href={detailHref} className="min-w-0">
-          <p className="truncate text-sm font-bold text-[#e8edf5]">{item.title}</p>
+          <p className="line-clamp-2 text-sm font-bold leading-snug text-[#e8edf5]">{item.title}</p>
           <p className="text-xs text-[#94a3b8]">
             {item.mediaType === "series" ? "TV" : "Movie"}
             {item.releaseYear ? ` · ${item.releaseYear}` : ""}
           </p>
         </Link>
 
-        <div className="mt-auto grid grid-cols-2 gap-1.5">
-          <button
-            onClick={() => onMark(toTitleRef(item), "want_to_watch")}
-            aria-pressed={status === "want_to_watch"}
-            className={`rounded-lg px-2 py-2 text-xs font-bold transition-colors ${
-              status === "want_to_watch"
-                ? "bg-[#22D3EE] text-[#06131a]"
-                : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"
-            }`}
-          >
-            {status === "want_to_watch" ? "On your list ✓" : "Want to Watch"}
-          </button>
-          <button
-            onClick={() => onMark(toTitleRef(item), "watched")}
-            aria-pressed={status === "watched"}
-            className={`rounded-lg px-2 py-2 text-xs font-bold transition-colors ${
-              status === "watched"
-                ? "bg-[#22D3EE] text-[#06131a]"
-                : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"
-            }`}
-          >
-            {status === "watched" ? "Watched ✓" : "Watched"}
-          </button>
+        <div className="mt-auto">
+          <TriageButtons titleRef={toTitleRef(item)} entry={entry} onMark={onMark} onClear={onClear} />
         </div>
 
         {status === "watched" && (

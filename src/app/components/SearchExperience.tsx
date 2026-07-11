@@ -49,7 +49,7 @@ export default function SearchExperience({
   const [tally, setTally] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { entryFor, mark, take, again, hydrated } = useLibrary();
+  const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -208,7 +208,7 @@ export default function SearchExperience({
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {items.map((it) => (
                 <li key={it.id}>
-                  <TitleCard item={it} entry={entryFor(it.id)} onMark={handleMark} onTake={take} onAgain={again} />
+                  <TitleCard item={it} entry={entryFor(it.id)} onMark={handleMark} onClear={remove} onTake={take} onAgain={again} />
                 </li>
               ))}
             </ul>
