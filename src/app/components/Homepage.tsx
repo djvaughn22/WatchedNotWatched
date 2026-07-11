@@ -32,13 +32,25 @@ export function Homepage() {
             How many have you seen?
           </h2>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Link
+              href="/top"
+              className="rounded-full border border-[#22D3EE] px-4 py-2 text-sm font-bold text-[#22D3EE] transition-colors hover:bg-[#22D3EE]/10"
+            >
+              Top 222 of all time
+            </Link>
+            <Link
+              href="/top?type=series"
+              className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-bold text-[#e8edf5] transition-colors hover:border-[#22D3EE] hover:text-[#22D3EE]"
+            >
+              Top 222 TV shows
+            </Link>
             {DECADES.map((d) => (
               <Link
                 key={d.id}
                 href={`/top?decade=${d.id}`}
                 className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-bold text-[#e8edf5] transition-colors hover:border-[#22D3EE] hover:text-[#22D3EE]"
               >
-                Top 100 of the {d.label}
+                Top 222 of the {d.label}
               </Link>
             ))}
             <Link

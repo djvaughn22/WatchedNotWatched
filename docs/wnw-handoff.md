@@ -17,7 +17,7 @@ Do not revive filtering.
 ## Routes
 
 `/` (search-first home + Top-100 links + library snapshot) · `/search` ·
-`/top` (Top 100 board: decades × genres, drag/tap into Watched vs Not Watched
+`/top` (Top 222 board: all time × decades × genres, drag/tap into Watched vs Not Watched
 columns with a live scoreboard; horror + adult excluded from every query) ·
 `/library` (views, filters, sort, bulk actions, export) · `/saved` → redirects
 to `/library` · `/title/[source]/[id]` · `/about` · `/legal` · APIs:

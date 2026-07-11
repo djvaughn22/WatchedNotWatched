@@ -1,4 +1,4 @@
-// Browsable genres for the Top 100 pages, with TMDB's public genre ids.
+// Browsable genres for the Top 222 pages, with TMDB's public genre ids.
 // Horror is intentionally absent, and every discover query also excludes it
 // (without_genres) and adult content (include_adult=false) — DJ's rule.
 

@@ -193,13 +193,14 @@ export function createTmdbAdapter(): TmdbAdapter {
   }
 
   /**
-   * Top titles for a decade and/or genre, ranked by TMDB user ratings with a
-   * vote floor so obscure titles don't outrank classics. Horror and adult
-   * content are always excluded. One call = one TMDB page (20 titles).
+   * Top titles — all time, or narrowed to a decade and/or genre — ranked by
+   * TMDB user ratings with a vote floor so obscure titles don't outrank
+   * classics. Horror and adult content are always excluded. One call = one
+   * TMDB page (20 titles).
    */
   async function discoverTop(opts: {
     mediaType: "movie" | "series";
-    decade?: string; // "1980" … "2020"
+    decade?: string; // "1980" … "2020"; omitted = all time
     genreId?: number;
     page: number;
   }): Promise<SearchResultItem[]> {
@@ -231,6 +232,7 @@ export function createTmdbAdapter(): TmdbAdapter {
           title,
           releaseYear: yearOf(r.release_date ?? r.first_air_date),
           posterUrl: img(r.poster_path, "w342"),
+          voteAverage: typeof r.vote_average === "number" ? Math.round(r.vote_average * 10) / 10 : undefined,
           dataStatus: "live" as const,
         };
       })
@@ -278,6 +280,7 @@ interface TmdbListResponse {
     release_date?: string;
     first_air_date?: string;
     poster_path?: string | null;
+    vote_average?: number;
   }>;
 }
 

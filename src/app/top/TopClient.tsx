@@ -1,8 +1,9 @@
 "use client";
 
-// Top 100 board: pick a decade, a genre, or both — then sort the list into
-// Watched vs Not Watched and watch your score climb. Drag cards on desktop,
-// tap on phones. Ranked by TMDB user ratings. No horror, no adult content.
+// Top 222 board: all time by default, or narrow to a decade and/or genre —
+// then sort the posters into Watched vs Not Watched and watch your score
+// climb. Drag cards on desktop, tap on phones. Ranked by TMDB user ratings.
+// No horror, no adult content.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -17,7 +18,7 @@ type MediaKind = "movie" | "series";
 
 export default function TopClient() {
   const [kind, setKind] = useState<MediaKind>("movie");
-  const [decade, setDecade] = useState<DecadeId | null>("1980");
+  const [decade, setDecade] = useState<DecadeId | null>(null); // null = all time
   const [genreId, setGenreId] = useState<number | null>(null);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "unsupported" | "done">("loading");
@@ -53,12 +54,6 @@ export default function TopClient() {
 
   useEffect(() => {
     if (!urlApplied) return;
-    if (!decade && !genreId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setItems([]);
-      setStatus("done");
-      return;
-    }
     const controller = new AbortController();
     setStatus("loading");
     const q = new URLSearchParams({ type: kind });
@@ -108,7 +103,7 @@ export default function TopClient() {
       on ? "bg-[#22D3EE] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"
     }`;
 
-  const listLabel = `${genreId ? genres.find((g) => g.id === genreId)?.label + " " : ""}${kind === "movie" ? "movies" : "shows"}${decade ? ` of the ${DECADES.find((d) => d.id === decade)?.label}` : ""}`;
+  const listLabel = `${genreId ? genres.find((g) => g.id === genreId)?.label + " " : ""}${kind === "movie" ? "movies" : "shows"} ${decade ? `of the ${DECADES.find((d) => d.id === decade)?.label}` : "of all time"}`;
 
   return (
     <>
@@ -121,6 +116,9 @@ export default function TopClient() {
         ))}
       </div>
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Decade">
+        <button onClick={() => setDecade(null)} aria-pressed={decade === null} className={chip(decade === null)}>
+          All time
+        </button>
         {DECADES.map((d) => (
           <button key={d.id} onClick={() => setDecade(decade === d.id ? null : d.id)} aria-pressed={decade === d.id} className={chip(decade === d.id)}>
             {d.label}
@@ -136,8 +134,8 @@ export default function TopClient() {
       </div>
 
       {status === "loading" && (
-        <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-5">
-          {Array.from({ length: 10 }, (_, i) => (
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {Array.from({ length: 12 }, (_, i) => (
             <div key={i} className="aspect-[2/3] animate-pulse rounded-xl border border-[#26324c] bg-[#141d2e]" />
           ))}
         </div>
@@ -145,7 +143,7 @@ export default function TopClient() {
 
       {status === "unsupported" && (
         <p className="mt-5 rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">
-          Top 100 lists need the movie database connection, which isn’t configured yet.
+          Top lists need the movie database connection, which isn’t configured yet.
         </p>
       )}
 
@@ -155,9 +153,9 @@ export default function TopClient() {
         </p>
       )}
 
-      {status === "done" && !decade && !genreId && (
+      {status === "done" && items.length === 0 && (
         <p className="mt-5 rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">
-          Pick a decade or a genre.
+          The list didn’t load. Try again in a moment.
         </p>
       )}
 
@@ -200,7 +198,7 @@ export default function TopClient() {
                   </p>
                 </div>
               ) : (
-                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {toSort.map(({ it, rank }) => (
                     <li key={it.id}>
                       <div
@@ -222,6 +220,11 @@ export default function TopClient() {
                             </div>
                           )}
                           <span className="absolute right-2 top-2 rounded-lg bg-[#0b1220]/90 px-2 py-0.5 text-xs font-black text-[#e8edf5]">#{rank}</span>
+                          {typeof it.voteAverage === "number" && (
+                            <span className="absolute bottom-2 left-2 rounded-lg bg-[#0b1220]/90 px-1.5 py-0.5 text-[10px] font-black text-[#22D3EE]">
+                              ★ {it.voteAverage.toFixed(1)}
+                            </span>
+                          )}
                         </Link>
                         <div className="flex flex-1 flex-col gap-1.5 p-2">
                           <p className="line-clamp-1 text-xs font-bold text-[#e8edf5]">{it.title}</p>
