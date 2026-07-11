@@ -88,11 +88,58 @@ export const STEAMBOAT_WILLIE_MANIFEST: FilterManifest = {
   ],
 };
 
+// ---- The Skeleton Dance (1929) --------------------------------------------
+// Second public-domain title. Works published in 1929 entered the US public
+// domain on January 1, 2025. Media streams from the Internet Archive.
+// Events authored by frame-by-frame visual inspection of THIS exact file
+// (331.95s copy) on 2026-07-10.
+export const SKELETON_DANCE_VIDEO = {
+  src: "https://archive.org/download/videoplayback-5_20260207/videoplayback-5.mp4",
+  title: "The Skeleton Dance",
+  attribution:
+    "The Skeleton Dance (1929), Walt Disney & Ub Iwerks, music by Carl W. Stalling — public domain in the United States since January 1, 2025. Streamed from the Internet Archive (archive.org).",
+} as const;
+
+export const SKELETON_DANCE_MANIFEST: FilterManifest = {
+  id: "skeleton-dance-1929-ia-v1",
+  version: 1,
+  mediaId: "sample:skeleton-dance",
+  title: "The Skeleton Dance",
+  durationSeconds: 331.95,
+  source: "owner-authored",
+  createdAt: "2026-07-10T00:00:00.000Z",
+  updatedAt: "2026-07-10T00:00:00.000Z",
+  edition: "Internet Archive copy, 331.95s (item videoplayback-5_20260207)",
+  provider: "watchednotwatched",
+  region: "US",
+  runtimeSeconds: 331.95,
+  runtimeToleranceSeconds: 2,
+  verification: {
+    state: "verified",
+    verifiedAt: "2026-07-10",
+    method: "frame-by-frame visual check of this exact file",
+    notes:
+      "Timings observed from extracted frames at 1–2s granularity. Visual review only — the audio track (musical score, no dialogue) was not separately reviewed. The whole short is spooky graveyard imagery; events mark the stronger beats.",
+  },
+  events: [
+    { id: "sd1", startSeconds: 88, endSeconds: 103, action: "warn", category: "frightening", severity: "mild", label: "Skeleton rises", description: "A skeleton rises from the graveyard between two startled cats and sits on a gravestone." },
+    { id: "sd2", startSeconds: 103, endSeconds: 108, action: "skip", category: "frightening", severity: "moderate", label: "Startle: rush at camera", description: "The skeleton rushes toward the camera, hands filling the frame." },
+    { id: "sd3", startSeconds: 133, endSeconds: 141, action: "warn", category: "frightening", severity: "mild", label: "Detached skull gag", description: "The skeleton throws its own skull at the owl, knocking its feathers off." },
+    { id: "sd4", startSeconds: 244, endSeconds: 249.5, action: "skip", category: "frightening", severity: "moderate", label: "Startle: skull lunge", description: "A giant skull lunges at the camera with chattering teeth." },
+    { id: "sd5", startSeconds: 260, endSeconds: 266.5, action: "warn", category: "violence", severity: "mild", label: "Rough handling of a cat", description: "A skeleton grabs a black cat, holds it upside down, and plays its tail." },
+    { id: "sd6", startSeconds: 299, endSeconds: 316, action: "warn", category: "frightening", severity: "mild", label: "Bone-pile creature", description: "At dawn the skeletons collapse into a bone pile and reassemble as a many-skulled creature." },
+  ],
+};
+
 // ---- Registry ------------------------------------------------------------
 // One place that answers: "does this title have a filter track, and is there
 // media WatchedNotWatched is actually allowed to play and filter?"
 
-export const FILTER_MANIFESTS: FilterManifest[] = [DEMO_MANIFEST, STEAMBOAT_WILLIE_MANIFEST];
+export const FILTER_MANIFESTS: FilterManifest[] = [
+  DEMO_MANIFEST,
+  STEAMBOAT_WILLIE_MANIFEST,
+  SKELETON_DANCE_MANIFEST,
+];
 
 export function getManifestForMedia(mediaId: string): FilterManifest | undefined {
   return FILTER_MANIFESTS.find((m) => m.mediaId === mediaId);
@@ -119,6 +166,12 @@ export const AUTHORIZED_MEDIA: Record<string, AuthorizedMedia> = {
     src: STEAMBOAT_WILLIE_VIDEO.src,
     title: STEAMBOAT_WILLIE_VIDEO.title,
     attribution: STEAMBOAT_WILLIE_VIDEO.attribution,
+  },
+  "sample:skeleton-dance": {
+    mediaId: "sample:skeleton-dance",
+    src: SKELETON_DANCE_VIDEO.src,
+    title: SKELETON_DANCE_VIDEO.title,
+    attribution: SKELETON_DANCE_VIDEO.attribution,
   },
 };
 
