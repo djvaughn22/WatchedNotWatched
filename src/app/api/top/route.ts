@@ -38,14 +38,28 @@ export async function GET(req: NextRequest) {
 
   try {
     const adapter = createTmdbAdapter();
-    const pageNumbers = Array.from({ length: Math.ceil(limit / 20) }, (_, i) => i + 1);
+    // Fetch a few pages beyond the limit as a candidate pool, then re-rank
+    // with a Bayesian weighted rating (the IMDb Top-250 formula): a title's
+    // average is pulled toward the global mean until enough votes back it
+    // up. Kills the fresh release with 600 hyped votes outranking a classic
+    // with 28,000.
+    const pageCount = Math.ceil(limit / 20) + (limit >= FULL ? 3 : 2);
+    const pageNumbers = Array.from({ length: pageCount }, (_, i) => i + 1);
     const pages = await Promise.all(
       pageNumbers.map((page) => adapter.discoverTop({ mediaType, decade, genreId, page })),
     );
+    const M = mediaType === "series" ? 500 : 2500; // votes needed for full trust
+    const C = 7.0; // global mean rating
+    const weighted = (it: SearchResultItem) => {
+      const r = it.voteAverage ?? 0;
+      const v = it.voteCount ?? 0;
+      return (v / (v + M)) * r + (M / (v + M)) * C;
+    };
     const seen = new Set<string>();
     const items = pages
       .flat()
       .filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)))
+      .sort((a, b) => weighted(b) - weighted(a))
       .slice(0, limit);
     return NextResponse.json<TopResponse>({ items, supported: true });
   } catch {

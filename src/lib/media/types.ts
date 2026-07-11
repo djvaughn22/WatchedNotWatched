@@ -62,6 +62,7 @@ export interface SearchResultItem {
   posterUrl?: string;
   officialRating?: string;
   voteAverage?: number; // TMDB user score, 0–10
+  voteCount?: number;
   dataStatus: DataStatus;
 }
 

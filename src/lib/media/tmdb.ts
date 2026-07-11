@@ -233,6 +233,7 @@ export function createTmdbAdapter(): TmdbAdapter {
           releaseYear: yearOf(r.release_date ?? r.first_air_date),
           posterUrl: img(r.poster_path, "w342"),
           voteAverage: typeof r.vote_average === "number" ? Math.round(r.vote_average * 10) / 10 : undefined,
+          voteCount: typeof r.vote_count === "number" ? r.vote_count : undefined,
           dataStatus: "live" as const,
         };
       })
@@ -281,6 +282,7 @@ interface TmdbListResponse {
     first_air_date?: string;
     poster_path?: string | null;
     vote_average?: number;
+    vote_count?: number;
   }>;
 }
 
