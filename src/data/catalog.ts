@@ -29,7 +29,25 @@ const base = (
 });
 
 export const SAMPLE_CATALOG: MediaTitle[] = [
-  // The one title with a verified filter track + media we may legally play.
+  // Titles with a verified filter track + media we may legally play.
+  {
+    id: "sample:steamboat-willie",
+    source: "sample",
+    sourceId: "steamboat-willie",
+    mediaType: "movie",
+    title: "Steamboat Willie",
+    releaseYear: 1928,
+    synopsis:
+      "Mickey Mouse's screen debut: a mischievous deckhand crosses Captain Pete and turns the boat's animal cargo into a musical number. Public domain in the United States since January 1, 2024. Streams from the Internet Archive with a WatchedNotWatched filter track.",
+    officialRating: "NR",
+    genres: ["Animation", "Comedy", "Short"],
+    guidance: notReviewedGuidance([...ALL_CATEGORIES]),
+    availability: [],
+    attribution: [
+      { source: "Internet Archive", text: "Steamboat Willie (1928) — US public domain. Video hosted by the Internet Archive.", url: "https://archive.org/details/steamboat-willie-1928-by-walt-disney_202401" },
+    ],
+    dataStatus: "sample",
+  },
   {
     id: "sample:demo-reel",
     source: "sample",

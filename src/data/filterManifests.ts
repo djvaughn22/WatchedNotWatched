@@ -45,11 +45,54 @@ export const DEMO_MANIFEST: FilterManifest = {
   ],
 };
 
+// ---- Steamboat Willie (1928) ----------------------------------------------
+// First real public-domain title. The film entered the US public domain on
+// January 1, 2024. Media streams from the Internet Archive.
+// Every event below was authored by frame-by-frame visual inspection of THIS
+// exact file (466.7s copy) on 2026-07-10 — not copied from any other source.
+export const STEAMBOAT_WILLIE_VIDEO = {
+  src: "https://archive.org/download/steamboat-willie-1928-by-walt-disney_202401/Steamboat_Willie_%281928%29_by_Walt_Disney.mp4",
+  title: "Steamboat Willie",
+  attribution:
+    "Steamboat Willie (1928), Walt Disney & Ub Iwerks — public domain in the United States since January 1, 2024. Streamed from the Internet Archive (archive.org).",
+} as const;
+
+export const STEAMBOAT_WILLIE_MANIFEST: FilterManifest = {
+  id: "steamboat-willie-1928-ia-v1",
+  version: 1,
+  mediaId: "sample:steamboat-willie",
+  title: "Steamboat Willie",
+  durationSeconds: 466.7,
+  source: "owner-authored",
+  createdAt: "2026-07-10T00:00:00.000Z",
+  updatedAt: "2026-07-10T00:00:00.000Z",
+  edition: "Internet Archive copy, 466.7s (item steamboat-willie-1928-by-walt-disney_202401)",
+  provider: "watchednotwatched",
+  region: "US",
+  runtimeSeconds: 466.7,
+  runtimeToleranceSeconds: 2,
+  verification: {
+    state: "verified",
+    verifiedAt: "2026-07-10",
+    method: "frame-by-frame visual check of this exact file",
+    notes:
+      "Timings observed from extracted frames at 1–2s granularity. Visual review only — the audio track (musical score, no dialogue) was not separately reviewed.",
+  },
+  events: [
+    { id: "sw1", startSeconds: 53, endSeconds: 70, action: "warn", category: "violence", severity: "mild", label: "Cartoon slapstick", description: "Pete kicks Mickey away from the wheel and sends him below deck." },
+    { id: "sw2", startSeconds: 88, endSeconds: 117, action: "warn", category: "substance-use", severity: "mild", label: "Tobacco gag", description: "Pete chews tobacco and spits at the ship's bell." },
+    { id: "sw3", startSeconds: 301, endSeconds: 366, action: "skip", category: "violence", severity: "moderate", label: "Rough handling of animals", description: "Animals played as instruments: a duck is squeezed, a piglet pulled by its tail, and a sow's teats played. Historically cut from some releases." },
+    { id: "sw4", startSeconds: 375, endSeconds: 411, action: "warn", category: "violence", severity: "mild", label: "Animal instrument gag", description: "A cow's teeth are played like a xylophone." },
+    { id: "sw5", startSeconds: 412, endSeconds: 421.5, action: "warn", category: "violence", severity: "mild", label: "Cartoon slapstick", description: "Pete grabs Mickey and throws him into the potato bin." },
+    { id: "sw6", startSeconds: 438, endSeconds: 444.5, action: "warn", category: "violence", severity: "mild", label: "Cartoon slapstick", description: "Mickey throws a potato at the laughing parrot, knocking it out the porthole." },
+  ],
+};
+
 // ---- Registry ------------------------------------------------------------
 // One place that answers: "does this title have a filter track, and is there
 // media WatchedNotWatched is actually allowed to play and filter?"
 
-export const FILTER_MANIFESTS: FilterManifest[] = [DEMO_MANIFEST];
+export const FILTER_MANIFESTS: FilterManifest[] = [DEMO_MANIFEST, STEAMBOAT_WILLIE_MANIFEST];
 
 export function getManifestForMedia(mediaId: string): FilterManifest | undefined {
   return FILTER_MANIFESTS.find((m) => m.mediaId === mediaId);
@@ -70,6 +113,12 @@ export const AUTHORIZED_MEDIA: Record<string, AuthorizedMedia> = {
     src: DEMO_VIDEO.src,
     title: DEMO_VIDEO.title,
     attribution: DEMO_VIDEO.attribution,
+  },
+  "sample:steamboat-willie": {
+    mediaId: "sample:steamboat-willie",
+    src: STEAMBOAT_WILLIE_VIDEO.src,
+    title: STEAMBOAT_WILLIE_VIDEO.title,
+    attribution: STEAMBOAT_WILLIE_VIDEO.attribution,
   },
 };
 

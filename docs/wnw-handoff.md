@@ -49,7 +49,9 @@ WatchedNotWatched helps families know what is in a movie or show, decide what to
 
 - Browser: desktop + mobile web (Chrome verified).
 - Provider: WatchedNotWatched's own player only.
-- Title/edition: "Filter Demo Reel" — bundled 10s Big Buck Bunny clip (CC-BY 3.0, Blender Foundation), track `demo-reel-v1`, verified 2026-07-10 by manual playback check.
+- Titles/editions:
+  1. "Filter Demo Reel" — bundled 10s Big Buck Bunny clip (CC-BY 3.0, Blender Foundation), track `demo-reel-v1`, verified 2026-07-10 by manual playback check.
+  2. "Steamboat Willie" (1928) — US public domain since 2024-01-01; streams from the Internet Archive (466.7s copy, item `steamboat-willie-1928-by-walt-disney_202401`); track `steamboat-willie-1928-ia-v1`, 6 events authored by frame-by-frame visual inspection of that exact file, verified 2026-07-10. Visual review only — audio (musical score, no dialogue) not separately reviewed. Note: PD status asserted for the US; the stream depends on archive.org availability and fails safely if unreachable.
 
 ## Privacy / security
 
