@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { overlapWarnings, parseManifest, validateManifest } from "./manifest";
+import { canRunAutomaticActions, overlapWarnings, parseManifest, runtimeMatches, validateManifest } from "./manifest";
 import type { FilterEvent, FilterManifest } from "./types";
 
 const good: FilterManifest = {
@@ -28,6 +28,46 @@ describe("validateManifest", () => {
   it("warns when an event runs past the duration", () => {
     const m = { ...good, durationSeconds: 1, events: [{ ...good.events[0], startSeconds: 0.5, endSeconds: 5 }] };
     expect(validateManifest(m).warnings.some((w) => /after the media duration/.test(w))).toBe(true);
+  });
+  it("accepts optional edition/verification fields when well-formed", () => {
+    const m: FilterManifest = {
+      ...good,
+      edition: "demo clip",
+      provider: "watchednotwatched",
+      runtimeSeconds: 100,
+      runtimeToleranceSeconds: 2,
+      verification: { state: "verified", verifiedAt: "2026-07-10", method: "manual playback check" },
+    };
+    expect(validateManifest(m).valid).toBe(true);
+  });
+  it("rejects malformed optional fields", () => {
+    expect(validateManifest({ ...good, runtimeSeconds: -3 }).valid).toBe(false);
+    expect(validateManifest({ ...good, edition: 7 }).valid).toBe(false);
+    expect(validateManifest({ ...good, verification: { state: "maybe" } }).valid).toBe(false);
+    expect(validateManifest({ ...good, verification: { state: "verified" } }).valid).toBe(false);
+  });
+});
+
+describe("runtime verification gate", () => {
+  const verified: FilterManifest = {
+    ...good,
+    runtimeSeconds: 100,
+    verification: { state: "verified", verifiedAt: "2026-07-10" },
+  };
+  it("matches runtime within the default tolerance", () => {
+    expect(runtimeMatches(verified, 100)).toBe(true);
+    expect(runtimeMatches(verified, 101.5)).toBe(true);
+    expect(runtimeMatches(verified, 104)).toBe(false);
+    expect(runtimeMatches(verified, NaN)).toBe(false);
+  });
+  it("falls back to durationSeconds when runtimeSeconds is absent", () => {
+    expect(runtimeMatches(good, 100)).toBe(true);
+    expect(runtimeMatches(good, 90)).toBe(false);
+  });
+  it("blocks automatic actions unless verified AND runtime matches", () => {
+    expect(canRunAutomaticActions(verified, 100)).toBe(true);
+    expect(canRunAutomaticActions(verified, 90)).toBe(false); // wrong edition
+    expect(canRunAutomaticActions(good, 100)).toBe(false); // unverified
   });
 });
 

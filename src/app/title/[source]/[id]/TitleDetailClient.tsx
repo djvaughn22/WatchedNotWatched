@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { getManifestForMedia, watchWithFilterAvailable } from "@/data/filterManifests";
 import { CATEGORY_LABELS } from "@/lib/filter/types";
 import { evaluateCompatibility } from "@/lib/compatibility";
 import { LEVEL_LABELS, isReviewed } from "@/lib/guidance";
 import { getEditorialStatus } from "@/lib/editorial-status";
 import type { MediaTitle, TrailerReference } from "@/lib/media/types";
 import { buildHandoff, PROVIDERS } from "@/lib/providers";
-import { useProfiles, useSaved } from "@/lib/useLocal";
+import { useProfiles, useSaved, useWatchStatus } from "@/lib/useLocal";
 
-export default function TitleDetailClient({ source, id, mediaType }: { source: string; id: string; mediaType: string }) {
+export default function TitleDetailClient({ source, id, mediaType, editorialEnabled = false }: { source: string; id: string; mediaType: string; editorialEnabled?: boolean }) {
   const [title, setTitle] = useState<MediaTitle | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "done">("loading");
   const [trailer, setTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
@@ -17,6 +19,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
   const [editorialMsg, setEditorialMsg] = useState("");
   const { active } = useProfiles();
   const { isSaved, toggle } = useSaved();
+  const { decisionFor, mark } = useWatchStatus();
 
   useEffect(() => {
     let alive = true;
@@ -54,6 +57,9 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
   }
 
   const saved = isSaved(title.id);
+  const decision = decisionFor(title.id);
+  const markDecision = (d: "watched" | "not-watched") =>
+    mark({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl, decision: d });
   const editorialStatus = getEditorialStatus(title);
   const reviewedCats = (title.guidance?.categories ?? []).filter((c) => isReviewed(c.level) && c.level !== "none-noted");
 
@@ -133,14 +139,25 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             {title.mediaType === "series" ? "Series" : "Movie"}{title.releaseYear ? ` · ${title.releaseYear}` : ""}{title.runtimeMinutes ? ` · ${title.runtimeMinutes} min` : ""}{title.officialRating ? ` · ${title.officialRating}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={() => markDecision("watched")}
+              aria-pressed={decision === "watched"}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${decision === "watched" ? "border-[#22D3EE] bg-[#22D3EE] text-[#06131a]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
+              {decision === "watched" ? "Watched ✓" : "Watched"}
+            </button>
+            <button onClick={() => markDecision("not-watched")}
+              aria-pressed={decision === "not-watched"}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${decision === "not-watched" ? "border-[#e8edf5] bg-[#e8edf5] text-[#06131a]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
+              {decision === "not-watched" ? "Not watched ✓" : "Not watched"}
+            </button>
             <button onClick={() => toggle({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl })}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8]"}`}>
-              {saved ? "Saved ✓" : "Save"}
+              aria-pressed={saved}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
+              {saved ? "Saved for later ✓" : "Save for later"}
             </button>
             <button onClick={share} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
               {shareMsg || "Share"}
             </button>
-            {source !== "sample" && (
+            {editorialEnabled && source !== "sample" && (
               <button onClick={addToEditorial} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
                 {editorialMsg || "Add to review"}
               </button>
@@ -193,6 +210,38 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             {title.officialRating && (
               <p className="mt-2 text-xs text-[#64748b]">Official rating: {title.officialRating}. Official age ratings are not the same as WatchedNotWatched guidance.</p>
             )}
+          </>
+        )}
+      </section>
+
+      {/* 5. Filtering */}
+      <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
+        <h2 className="text-sm font-bold text-[#e8edf5]">Filtering</h2>
+        {watchWithFilterAvailable(title.id) ? (() => {
+          const manifest = getManifestForMedia(title.id)!;
+          return (
+            <>
+              <p className="mt-2 text-sm font-semibold text-[#22D3EE]">Filtering is available for the version listed.</p>
+              <p className="mt-1 text-sm text-[#94a3b8]">
+                {manifest.edition ?? "Supported version"} · {manifest.events.length} filter events
+                {manifest.verification?.state === "verified" && manifest.verification.verifiedAt ? ` · track verified ${manifest.verification.verifiedAt}` : ""}
+              </p>
+              <Link href={`/watch/${encodeURIComponent(title.id)}`}
+                className="mt-3 inline-block rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-bold text-[#06131a]">
+                Watch with Filter
+              </Link>
+              <p className="mt-2 text-xs text-[#94a3b8]">Plays in the WatchedNotWatched player with your profile’s filters applied.</p>
+            </>
+          );
+        })() : (
+          <>
+            <p className="mt-2 text-sm font-semibold text-[#e8edf5]">Filtering is not verified for this version.</p>
+            <p className="mt-1 text-sm text-[#94a3b8]">
+              Automatic muting and skipping work only on video WatchedNotWatched is allowed to play, with a filter track verified for the exact version. For this title, WatchedNotWatched provides content guidance and provider links — automatic filtering is not supported yet.
+            </p>
+            <Link href="/filter-lab" className="mt-2 inline-block text-sm font-semibold text-[#22D3EE] hover:underline">
+              See how filtering works in the Filter Lab →
+            </Link>
           </>
         )}
       </section>

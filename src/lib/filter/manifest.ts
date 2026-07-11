@@ -57,6 +57,23 @@ export function validateManifest(input: unknown): ValidationResult {
   if (!isFiniteNumber(m.durationSeconds) || (m.durationSeconds as number) <= 0)
     errors.push("durationSeconds must be a number > 0");
   if (!SOURCES.has(m.source as string)) errors.push("source invalid");
+
+  // Optional version/verification fields — validated only when present.
+  for (const key of ["edition", "provider", "region"] as const) {
+    if (m[key] !== undefined && typeof m[key] !== "string")
+      errors.push(`${key} must be a string when present`);
+  }
+  if (m.runtimeSeconds !== undefined && (!isFiniteNumber(m.runtimeSeconds) || (m.runtimeSeconds as number) <= 0))
+    errors.push("runtimeSeconds must be a number > 0 when present");
+  if (m.runtimeToleranceSeconds !== undefined && (!isFiniteNumber(m.runtimeToleranceSeconds) || (m.runtimeToleranceSeconds as number) < 0))
+    errors.push("runtimeToleranceSeconds must be a number >= 0 when present");
+  if (m.verification !== undefined) {
+    const v = m.verification as Record<string, unknown>;
+    if (!v || typeof v !== "object" || !["verified", "unverified"].includes(v.state as string))
+      errors.push("verification.state must be \"verified\" or \"unverified\"");
+    else if (v.state === "verified" && typeof v.verifiedAt !== "string")
+      errors.push("verification.verifiedAt required when state is \"verified\"");
+  }
   if (!Array.isArray(m.events)) {
     errors.push("events must be an array");
   } else {
@@ -92,6 +109,27 @@ export function overlapWarnings(events: FilterEvent[]): string[] {
 
 export function sortEvents(events: FilterEvent[]): FilterEvent[] {
   return [...events].sort((a, b) => a.startSeconds - b.startSeconds);
+}
+
+const DEFAULT_RUNTIME_TOLERANCE_SECONDS = 2;
+
+// Automatic actions must not run against an unmatched edition. A manifest is
+// runnable only when it is marked verified AND the actual media duration
+// matches the expected runtime within tolerance.
+export function runtimeMatches(manifest: FilterManifest, actualDurationSeconds: number): boolean {
+  if (!Number.isFinite(actualDurationSeconds) || actualDurationSeconds <= 0) return false;
+  const expected = manifest.runtimeSeconds ?? manifest.durationSeconds;
+  const tolerance = manifest.runtimeToleranceSeconds ?? DEFAULT_RUNTIME_TOLERANCE_SECONDS;
+  return Math.abs(actualDurationSeconds - expected) <= tolerance;
+}
+
+export function isVerified(manifest: FilterManifest): boolean {
+  return manifest.verification?.state === "verified";
+}
+
+/** Gate for automatic mute/skip: verified track + matching runtime. */
+export function canRunAutomaticActions(manifest: FilterManifest, actualDurationSeconds: number): boolean {
+  return isVerified(manifest) && runtimeMatches(manifest, actualDurationSeconds);
 }
 
 // Parse untrusted JSON (e.g. an imported/localStorage manifest) safely.

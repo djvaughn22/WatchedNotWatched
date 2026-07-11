@@ -28,6 +28,18 @@ export interface FilterEvent {
   enabledByDefault?: boolean;
 }
 
+// A manifest only applies to ONE exact version of one piece of media.
+// A different cut, recap, ad break, intro, or runtime invalidates every
+// timestamp — verification exists so automatic actions never run blind.
+export interface ManifestVerification {
+  state: "verified" | "unverified";
+  /** ISO date the timing was last checked against the media. */
+  verifiedAt?: string;
+  /** How it was checked, e.g. "manual playback check". */
+  method?: string;
+  notes?: string;
+}
+
 export interface FilterManifest {
   id: string;
   version: number;
@@ -38,6 +50,16 @@ export interface FilterManifest {
   source: "editorial" | "owner-authored" | "sample";
   createdAt: string;
   updatedAt: string;
+  /** Exact cut this track was authored against, e.g. "CC-BY demo clip, 10s". */
+  edition?: string;
+  /** Where this exact edition plays. "watchednotwatched" = our own player. */
+  provider?: string;
+  /** Catalog region, when it matters for the edition. */
+  region?: string;
+  /** Expected media runtime; playback must match within tolerance. */
+  runtimeSeconds?: number;
+  runtimeToleranceSeconds?: number;
+  verification?: ManifestVerification;
 }
 
 // A minimal, player-agnostic control surface. An HTML5 <video>, a future

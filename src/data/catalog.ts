@@ -29,6 +29,23 @@ const base = (
 });
 
 export const SAMPLE_CATALOG: MediaTitle[] = [
+  // The one title with a verified filter track + media we may legally play.
+  {
+    id: "sample:demo-reel",
+    source: "sample",
+    sourceId: "demo-reel",
+    mediaType: "movie",
+    title: "Filter Demo Reel",
+    releaseYear: 2008,
+    synopsis:
+      "A ten-second clip from Big Buck Bunny (Blender Foundation, CC-BY 3.0) with an owner-authored, verified filter track. Use it to watch WatchedNotWatched filtering work end to end.",
+    officialRating: "NR",
+    genres: [],
+    guidance: notReviewedGuidance([...ALL_CATEGORIES]),
+    availability: [],
+    attribution: [{ source: "Blender Foundation", text: "Big Buck Bunny © Blender Foundation · CC-BY 3.0 · peach.blender.org", url: "https://peach.blender.org" }],
+    dataStatus: "sample",
+  },
   base("nightlivingdead", "Night of the Living Dead", 1968, "A group shelters in a farmhouse from the reanimated dead. Released without a rating; widely noted for its era. Public domain.", "NR"),
   base("nosferatu", "Nosferatu", 1922, "A silent-era vampire classic. Public domain.", "NR"),
   base("charade", "Charade", 1963, "A widow is pursued by men seeking a fortune her late husband stole. Public domain.", "NR"),
