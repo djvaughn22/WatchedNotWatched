@@ -12,8 +12,10 @@ interface TopResponse {
 const LIST_SIZE = 222;
 const PAGES = Array.from({ length: Math.ceil(LIST_SIZE / 20) }, (_, i) => i + 1);
 
-// Results change rarely; cache a day.
-export const revalidate = 86400;
+// No route-level revalidate: it once cached a "supported: false" body for a
+// day after the TMDB key was added, breaking the page while search worked.
+// Caching happens per TMDB fetch instead (1h, inside tmdbFetch), and failure
+// envelopes are never cached.
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;

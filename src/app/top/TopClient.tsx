@@ -1,9 +1,10 @@
 "use client";
 
-// Top 222 board: all time by default, or narrow to a decade and/or genre —
-// then sort the posters into Watched vs Not Watched and watch your score
-// climb. Drag cards on desktop, tap on phones. Ranked by TMDB user ratings.
-// No horror, no adult content.
+// Top 222 board, split screen: everything you still have to watch on the
+// left, everything you've watched on the right — sorted into 👍 Liked and
+// 👎 Not liked. Thumb a poster, or drag it into a zone on desktop. All time
+// by default, or narrow to a decade and/or genre. Ranked by TMDB user
+// ratings. No horror, no adult content.
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -11,10 +12,13 @@ import type { SearchResultItem } from "@/lib/media/types";
 import { DECADES, MOVIE_GENRES, TV_GENRES, isValidDecade, type DecadeId } from "@/lib/media/genres";
 import { useLibrary } from "@/lib/useLocal";
 import { toTitleRef } from "@/app/components/TitleCard";
-import { STATUS_COLORS } from "@/app/components/TriageButtons";
-import type { LibraryStatus } from "@/lib/library";
+import type { MyTake } from "@/lib/library";
 
 type MediaKind = "movie" | "series";
+type Zone = "liked" | "not_liked";
+
+const LIKED = "#22D3EE"; // thumbs up — brand cyan
+const NOT_LIKED = "#64748B"; // thumbs down — slate (no red, house rule)
 
 export default function TopClient() {
   const [kind, setKind] = useState<MediaKind>("movie");
@@ -22,15 +26,15 @@ export default function TopClient() {
   const [genreId, setGenreId] = useState<number | null>(null);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "unsupported" | "done">("loading");
-  const [dragOver, setDragOver] = useState<"watched" | "not" | null>(null);
+  const [dragOver, setDragOver] = useState<Zone | null>(null);
   const [urlApplied, setUrlApplied] = useState(false);
-  const { entryFor, mark, remove, hydrated } = useLibrary();
+  const { entryFor, mark, take, remove, hydrated } = useLibrary();
 
   const genres = kind === "series" ? TV_GENRES : MOVIE_GENRES;
 
   // Deep links (?decade=1990&genre=35&type=series) — read once on mount.
   // Parsed from window.location instead of useSearchParams so this page
-  // needs no Suspense boundary.
+  // needs no Suspense boundary (Next 16 gotcha).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("decade") ?? "";
@@ -76,23 +80,38 @@ export default function TopClient() {
   }, [kind, decade, genreId, urlApplied]);
 
   const ranked = useMemo(() => items.map((it, i) => ({ it, rank: i + 1 })), [items]);
-  const toSort = ranked.filter(({ it }) => !entryFor(it.id));
-  const watchedCol = ranked.filter(({ it }) => entryFor(it.id)?.status === "watched");
-  const notCol = ranked.filter(({ it }) => {
-    const s = entryFor(it.id)?.status;
-    return s === "want_to_watch" || s === "prob_not";
+
+  // Left = still to watch (including "prob not", dimmed). Right = watched,
+  // split by your thumbs. "fine"/unrated watched titles wait in "No call yet".
+  const toWatch = ranked.filter(({ it }) => entryFor(it.id)?.status !== "watched");
+  const watched = ranked.filter(({ it }) => entryFor(it.id)?.status === "watched");
+  const likedRows = watched.filter(({ it }) => {
+    const t = entryFor(it.id)?.myTake;
+    return t === "loved" || t === "liked";
   });
-  const sortedCount = watchedCol.length + notCol.length;
-  const seenPct = items.length > 0 ? Math.round((watchedCol.length / items.length) * 100) : 0;
+  const notLikedRows = watched.filter(({ it }) => entryFor(it.id)?.myTake === "not_for_me");
+  const unratedRows = watched.filter(({ it }) => {
+    const t = entryFor(it.id)?.myTake;
+    return !t || t === "fine";
+  });
+  const seenPct = items.length > 0 ? Math.round((watched.length / items.length) * 100) : 0;
 
-  const sortTo = (item: SearchResultItem, statusValue: LibraryStatus) => mark(toTitleRef(item), statusValue);
+  const thumb = (item: SearchResultItem, myTake: MyTake) => {
+    mark(toTitleRef(item), "watched");
+    take(item.id, myTake);
+  };
+  const probNot = (item: SearchResultItem) => {
+    const current = entryFor(item.id)?.status;
+    if (current === "prob_not") remove(item.id);
+    else mark(toTitleRef(item), "prob_not");
+  };
 
-  const onDrop = (zone: "watched" | "not") => (e: React.DragEvent) => {
+  const onDrop = (zone: Zone) => (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(null);
     try {
       const item = JSON.parse(e.dataTransfer.getData("application/json")) as SearchResultItem;
-      sortTo(item, zone === "watched" ? "watched" : "want_to_watch");
+      thumb(item, zone === "liked" ? "liked" : "not_for_me");
     } catch {
       /* ignore foreign drags */
     }
@@ -147,13 +166,7 @@ export default function TopClient() {
         </p>
       )}
 
-      {status === "error" && (
-        <p className="mt-5 rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">
-          The list didn’t load. Try again in a moment.
-        </p>
-      )}
-
-      {status === "done" && items.length === 0 && (
+      {(status === "error" || (status === "done" && items.length === 0)) && (
         <p className="mt-5 rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">
           The list didn’t load. Try again in a moment.
         </p>
@@ -168,136 +181,155 @@ export default function TopClient() {
                 Top {items.length} {listLabel}
               </p>
               <p className="text-sm font-black text-[#22D3EE]">
-                Seen {watchedCol.length} of {items.length}
+                Seen {watched.length} of {items.length}
                 <span className="ml-1 text-xs font-semibold text-[#94a3b8]">({seenPct}%)</span>
               </p>
             </div>
             <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-[#26324c]" role="img"
-              aria-label={`Watched ${watchedCol.length}, not watched ${notCol.length}, unsorted ${toSort.length}`}>
-              <div style={{ width: `${(watchedCol.length / items.length) * 100}%`, backgroundColor: STATUS_COLORS.watched }} />
-              <div style={{ width: `${(notCol.length / items.length) * 100}%`, backgroundColor: STATUS_COLORS.want_to_watch }} />
+              aria-label={`Watched ${watched.length}, to watch ${toWatch.length}`}>
+              <div style={{ width: `${(watched.length / items.length) * 100}%`, backgroundColor: LIKED }} />
             </div>
             <p className="mt-1.5 text-[11px] text-[#64748b]">
-              <span className="font-bold text-[#22D3EE]">Watched {watchedCol.length}</span>
+              <span className="font-bold" style={{ color: LIKED }}>👍 {likedRows.length}</span>
               {" · "}
-              <span className="font-bold text-[#60A5FA]">Not watched {notCol.length}</span>
-              {toSort.length > 0 ? ` · ${toSort.length} to sort` : sortedCount > 0 ? " · all sorted" : ""}
+              <span className="font-bold" style={{ color: NOT_LIKED }}>👎 {notLikedRows.length}</span>
+              {unratedRows.length > 0 ? ` · ${unratedRows.length} watched, no call yet` : ""}
+              {` · ${toWatch.length} to watch`}
             </p>
           </div>
 
-          {/* Board */}
-          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_290px]">
-            {/* To sort */}
+          {/* Split board: to watch | watched */}
+          <div className="mt-4 grid items-start gap-3 md:grid-cols-[1fr_320px]">
+            {/* LEFT: still to watch */}
             <div>
-              {toSort.length === 0 ? (
+              <p className="pb-2 text-xs font-black uppercase tracking-wide text-[#94a3b8]">
+                To watch ({toWatch.length})
+              </p>
+              {toWatch.length === 0 ? (
                 <div className="rounded-xl border border-[#26324c] bg-[#141d2e] p-6 text-center">
-                  <p className="text-sm font-bold text-[#e8edf5]">All {items.length} sorted.</p>
+                  <p className="text-sm font-bold text-[#e8edf5]">You’ve seen all {items.length}.</p>
                   <p className="mt-1 text-xs text-[#94a3b8]">
-                    You’ve seen {watchedCol.length} — pick another decade or genre above, or{" "}
-                    <Link href="/library" className="text-[#22D3EE] hover:underline">open your library</Link>.
+                    Pick another decade or genre above, or see{" "}
+                    <Link href="/foryou" className="text-[#22D3EE] hover:underline">picks based on your 👍s</Link>.
                   </p>
                 </div>
               ) : (
                 <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {toSort.map(({ it, rank }) => (
-                    <li key={it.id}>
-                      <div
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData("application/json", JSON.stringify(it));
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        className="flex cursor-grab flex-col overflow-hidden rounded-xl border border-[#26324c] bg-[#141d2e] active:cursor-grabbing"
-                      >
-                        <Link href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`} className="relative block aspect-[2/3] bg-[#0b1220]">
-                          {it.posterUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={it.posterUrl} alt={`${it.title} poster`} className="h-full w-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center">
-                              <span className="text-3xl" aria-hidden>🎬</span>
-                              <span className="text-xs font-semibold text-[#94a3b8]">{it.title}</span>
+                  {toWatch.map(({ it, rank }) => {
+                    const isProbNot = entryFor(it.id)?.status === "prob_not";
+                    return (
+                      <li key={it.id}>
+                        <div
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("application/json", JSON.stringify(it));
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          className={`flex cursor-grab flex-col overflow-hidden rounded-xl border border-[#26324c] bg-[#141d2e] active:cursor-grabbing ${isProbNot ? "opacity-55" : ""}`}
+                        >
+                          <Link href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`} className="relative block aspect-[2/3] bg-[#0b1220]">
+                            {it.posterUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={it.posterUrl} alt={`${it.title} poster`} className="h-full w-full object-cover" loading="lazy" />
+                            ) : (
+                              <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center">
+                                <span className="text-3xl" aria-hidden>🎬</span>
+                                <span className="text-xs font-semibold text-[#94a3b8]">{it.title}</span>
+                              </div>
+                            )}
+                            <span className="absolute right-2 top-2 rounded-lg bg-[#0b1220]/90 px-2 py-0.5 text-xs font-black text-[#e8edf5]">#{rank}</span>
+                            {typeof it.voteAverage === "number" && (
+                              <span className="absolute bottom-2 left-2 rounded-lg bg-[#0b1220]/90 px-1.5 py-0.5 text-[10px] font-black text-[#22D3EE]">
+                                ★ {it.voteAverage.toFixed(1)}
+                              </span>
+                            )}
+                          </Link>
+                          <div className="flex flex-1 flex-col gap-1.5 p-2">
+                            <p className="line-clamp-1 text-xs font-bold text-[#e8edf5]">{it.title}</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button
+                                onClick={() => thumb(it, "liked")}
+                                aria-label={`Watched and liked ${it.title}`}
+                                className="rounded-lg border border-[#22D3EE]/50 px-1.5 py-1.5 text-sm hover:bg-[#22D3EE]/10"
+                              >
+                                👍
+                              </button>
+                              <button
+                                onClick={() => thumb(it, "not_for_me")}
+                                aria-label={`Watched, not for me: ${it.title}`}
+                                className="rounded-lg border border-[#64748B]/60 px-1.5 py-1.5 text-sm hover:bg-[#64748B]/10"
+                              >
+                                👎
+                              </button>
                             </div>
-                          )}
-                          <span className="absolute right-2 top-2 rounded-lg bg-[#0b1220]/90 px-2 py-0.5 text-xs font-black text-[#e8edf5]">#{rank}</span>
-                          {typeof it.voteAverage === "number" && (
-                            <span className="absolute bottom-2 left-2 rounded-lg bg-[#0b1220]/90 px-1.5 py-0.5 text-[10px] font-black text-[#22D3EE]">
-                              ★ {it.voteAverage.toFixed(1)}
-                            </span>
-                          )}
-                        </Link>
-                        <div className="flex flex-1 flex-col gap-1.5 p-2">
-                          <p className="line-clamp-1 text-xs font-bold text-[#e8edf5]">{it.title}</p>
-                          <div className="grid grid-cols-2 gap-1.5">
                             <button
-                              onClick={() => sortTo(it, "watched")}
-                              className="rounded-lg border border-[#22D3EE]/50 px-1.5 py-1.5 text-[11px] font-bold text-[#22D3EE] hover:bg-[#22D3EE]/10"
+                              onClick={() => probNot(it)}
+                              aria-pressed={isProbNot}
+                              className="text-[10px] font-semibold text-[#64748b] hover:text-[#e8edf5]"
                             >
-                              ✓ Watched
-                            </button>
-                            <button
-                              onClick={() => sortTo(it, "want_to_watch")}
-                              className="rounded-lg border border-[#60A5FA]/50 px-1.5 py-1.5 text-[11px] font-bold text-[#60A5FA] hover:bg-[#60A5FA]/10"
-                            >
-                              Not yet
+                              {isProbNot ? "Prob not ✓ (tap to undo)" : "Prob not watching"}
                             </button>
                           </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
 
-            {/* Columns */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-start">
-              <ColumnList
-                label="Watched"
-                color={STATUS_COLORS.watched}
-                rows={watchedCol}
-                highlight={dragOver === "watched"}
-                onDragOver={(e) => { e.preventDefault(); setDragOver("watched"); }}
+            {/* RIGHT: watched, thumbed */}
+            <div className="space-y-3 md:sticky md:top-40 md:max-h-[calc(100vh-11rem)] md:overflow-y-auto">
+              <DropColumn
+                label="👍 Liked"
+                color={LIKED}
+                rows={likedRows}
+                highlight={dragOver === "liked"}
+                onDragOver={(e) => { e.preventDefault(); setDragOver("liked"); }}
                 onDragLeave={() => setDragOver(null)}
-                onDrop={onDrop("watched")}
+                onDrop={onDrop("liked")}
+                flip={(id) => take(id, "not_for_me")}
+                flipLabel="👎"
                 unsort={(id) => remove(id)}
               />
-              <ColumnList
-                label="Not Watched"
-                color={STATUS_COLORS.want_to_watch}
-                rows={notCol}
-                highlight={dragOver === "not"}
-                onDragOver={(e) => { e.preventDefault(); setDragOver("not"); }}
+              <DropColumn
+                label="👎 Not liked"
+                color={NOT_LIKED}
+                rows={notLikedRows}
+                highlight={dragOver === "not_liked"}
+                onDragOver={(e) => { e.preventDefault(); setDragOver("not_liked"); }}
                 onDragLeave={() => setDragOver(null)}
-                onDrop={onDrop("not")}
+                onDrop={onDrop("not_liked")}
+                flip={(id) => take(id, "liked")}
+                flipLabel="👍"
                 unsort={(id) => remove(id)}
-                subChips={(id) => {
-                  const s = entryFor(id)?.status;
-                  return (
-                    <span className="flex gap-1">
-                      <button
-                        onClick={() => { const row = ranked.find((r) => r.it.id === id); if (row) sortTo(row.it, "want_to_watch"); }}
-                        aria-pressed={s === "want_to_watch"}
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${s === "want_to_watch" ? "bg-[#60A5FA] text-[#06131a]" : "border border-[#26324c] text-[#64748b]"}`}
-                      >
-                        Want to
-                      </button>
-                      <button
-                        onClick={() => { const row = ranked.find((r) => r.it.id === id); if (row) sortTo(row.it, "prob_not"); }}
-                        aria-pressed={s === "prob_not"}
-                        className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${s === "prob_not" ? "bg-[#64748B] text-[#06131a]" : "border border-[#26324c] text-[#64748b]"}`}
-                      >
-                        Prob not
-                      </button>
-                    </span>
-                  );
-                }}
               />
+              {unratedRows.length > 0 && (
+                <section aria-label="Watched, no call yet" className="rounded-xl border border-[#26324c] p-2">
+                  <p className="px-1 pb-2 text-xs font-black uppercase tracking-wide text-[#94a3b8]">
+                    Watched — no call yet ({unratedRows.length})
+                  </p>
+                  <ul className="space-y-1.5">
+                    {unratedRows.map(({ it, rank }) => (
+                      <WatchedRow key={it.id} it={it} rank={rank} unsort={() => remove(it.id)}>
+                        <span className="flex gap-1">
+                          <button onClick={() => take(it.id, "liked")} aria-label={`Liked ${it.title}`} className="rounded-full border border-[#22D3EE]/50 px-1.5 text-xs hover:bg-[#22D3EE]/10">👍</button>
+                          <button onClick={() => take(it.id, "not_for_me")} aria-label={`Not for me: ${it.title}`} className="rounded-full border border-[#64748B]/60 px-1.5 text-xs hover:bg-[#64748B]/10">👎</button>
+                        </span>
+                      </WatchedRow>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <p className="px-1 text-[11px] leading-relaxed text-[#64748b]">
+                Thumbs feed your <Link href="/foryou" className="text-[#22D3EE] hover:underline">For You picks</Link>.
+                👍 = Liked it, 👎 = Not for me in your <Link href="/library" className="text-[#22D3EE] hover:underline">library</Link>.
+              </p>
             </div>
           </div>
 
           <p className="mt-4 text-[11px] text-[#64748b]">
-            Ranked by TMDB user ratings. Drag a poster into a column, or tap the buttons.
+            Ranked by TMDB user ratings. Tap 👍 or 👎, or drag a poster into a column.
           </p>
         </>
       )}
@@ -305,7 +337,7 @@ export default function TopClient() {
   );
 }
 
-function ColumnList({
+function DropColumn({
   label,
   color,
   rows,
@@ -313,8 +345,9 @@ function ColumnList({
   onDragOver,
   onDragLeave,
   onDrop,
+  flip,
+  flipLabel,
   unsort,
-  subChips,
 }: {
   label: string;
   color: string;
@@ -323,8 +356,9 @@ function ColumnList({
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent) => void;
+  flip: (id: string) => void;
+  flipLabel: string;
   unsort: (id: string) => void;
-  subChips?: (id: string) => React.ReactNode;
 }) {
   return (
     <section
@@ -332,7 +366,7 @@ function ColumnList({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       aria-label={`${label} column`}
-      className={`min-h-40 rounded-xl border-2 border-dashed p-2 transition-colors ${highlight ? "bg-[#141d2e]" : "bg-transparent"}`}
+      className={`min-h-32 rounded-xl border-2 border-dashed p-2 transition-colors ${highlight ? "bg-[#141d2e]" : "bg-transparent"}`}
       style={{ borderColor: highlight ? color : "#26324c" }}
     >
       <p className="px-1 pb-2 text-xs font-black uppercase tracking-wide" style={{ color }}>
@@ -343,31 +377,50 @@ function ColumnList({
       ) : (
         <ul className="space-y-1.5">
           {rows.map(({ it, rank }) => (
-            <li key={it.id} className="flex items-center gap-2 rounded-lg bg-[#141d2e] p-1.5">
-              <span className="w-7 shrink-0 text-center text-[10px] font-black text-[#64748b]">#{rank}</span>
-              <div className="h-10 w-7 shrink-0 overflow-hidden rounded bg-[#0b1220]">
-                {it.posterUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={it.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <Link href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`} className="block truncate text-xs font-semibold text-[#e8edf5] hover:underline">
-                  {it.title}
-                </Link>
-                {subChips?.(it.id)}
-              </div>
+            <WatchedRow key={it.id} it={it} rank={rank} unsort={() => unsort(it.id)}>
               <button
-                onClick={() => unsort(it.id)}
-                aria-label={`Unsort ${it.title}`}
-                className="shrink-0 rounded-full px-1.5 text-sm text-[#64748b] hover:text-[#e8edf5]"
+                onClick={() => flip(it.id)}
+                aria-label={`Change to ${flipLabel} for ${it.title}`}
+                className="rounded-full border border-[#26324c] px-1.5 text-xs hover:bg-[#26324c]/50"
               >
-                ✕
+                {flipLabel}
               </button>
-            </li>
+            </WatchedRow>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+function WatchedRow({ it, rank, unsort, children }: {
+  it: SearchResultItem;
+  rank: number;
+  unsort: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-2 rounded-lg bg-[#141d2e] p-1.5">
+      <span className="w-7 shrink-0 text-center text-[10px] font-black text-[#64748b]">#{rank}</span>
+      <div className="h-10 w-7 shrink-0 overflow-hidden rounded bg-[#0b1220]">
+        {it.posterUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={it.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <Link href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`} className="block truncate text-xs font-semibold text-[#e8edf5] hover:underline">
+          {it.title}
+        </Link>
+        {children}
+      </div>
+      <button
+        onClick={unsort}
+        aria-label={`Unsort ${it.title}`}
+        className="shrink-0 rounded-full px-1.5 text-sm text-[#64748b] hover:text-[#e8edf5]"
+      >
+        ✕
+      </button>
+    </li>
   );
 }
