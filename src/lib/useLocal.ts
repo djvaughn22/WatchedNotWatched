@@ -9,6 +9,15 @@ import {
   type ProfileStore,
   type ViewingProfile,
 } from "./profiles";
+import {
+  applyDecision,
+  clearDecision,
+  getDecision,
+  sanitizeEntries,
+  WATCH_STATUS_KEY,
+  type WatchDecision,
+  type WatchStatusEntry,
+} from "./watchStatus";
 
 export function useProfiles() {
   const [store, setStore] = useState<ProfileStore | null>(null);
@@ -110,4 +119,62 @@ export function useSaved() {
   );
 
   return { saved, isSaved, toggle, remove };
+}
+
+// ---- Watched / Not Watched ----------------------------------------------
+function readStatuses(): WatchStatusEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(WATCH_STATUS_KEY);
+    return raw ? sanitizeEntries(JSON.parse(raw)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStatuses(next: WatchStatusEntry[]) {
+  try {
+    window.localStorage.setItem(WATCH_STATUS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function useWatchStatus() {
+  const [entries, setEntries] = useState<WatchStatusEntry[]>([]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEntries(readStatuses());
+  }, []);
+
+  const decisionFor = useCallback(
+    (id: string): WatchDecision | null => getDecision(entries, id),
+    [entries],
+  );
+
+  /** Set a decision; choosing the same decision again clears it. */
+  const mark = useCallback(
+    (entry: Omit<WatchStatusEntry, "decidedAt">) => {
+      setEntries((prev) => {
+        const next =
+          getDecision(prev, entry.id) === entry.decision
+            ? clearDecision(prev, entry.id)
+            : applyDecision(prev, entry);
+        writeStatuses(next);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const clear = useCallback((id: string) => {
+    setEntries((prev) => {
+      const next = clearDecision(prev, id);
+      writeStatuses(next);
+      return next;
+    });
+  }, []);
+
+  return { entries, decisionFor, mark, clear };
 }
