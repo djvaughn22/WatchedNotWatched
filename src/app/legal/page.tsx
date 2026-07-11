@@ -21,19 +21,17 @@ export default function LegalPage() {
         </p>
 
         <Section title="Content &amp; Availability Disclaimer">
-          <p>Content guidance can be incomplete and is informational only. It is not a rating, endorsement, or guarantee. “Not yet reviewed” is never the same as “nothing of concern.”</p>
-          <p>Where-to-watch availability changes often and varies by region; a subscription may be required. Third-party trademarks and titles belong to their owners. WatchedNotWatched is not endorsed by or affiliated with the streaming providers listed.</p>
-          <p>External links open the provider’s own site or app and leave WatchedNotWatched. Automatic filtering currently applies only to supported or authorized video (see the Filter Lab); it does not apply to subscription streaming playback.</p>
+          <p>Title information, posters, and trailers come from third-party sources and may be incomplete or out of date. Where-to-watch availability changes often and varies by region; a subscription or purchase may be required.</p>
+          <p>Third-party trademarks and titles belong to their owners. WatchedNotWatched is not endorsed by or affiliated with any streaming provider. External links open the provider’s own site or app and leave WatchedNotWatched.</p>
         </Section>
 
         <Section title="Privacy">
-          <p>Profiles, saved titles, recent searches, and Filter Lab sessions are stored locally on your device by default. We do not ask for streaming passwords, children’s personal information, or precise identity-linked viewing histories.</p>
-          <p>Searches you run are sent to our server to query a metadata provider; we do not tie them to a personal profile. You can clear recent searches and reset local data at any time.</p>
+          <p>Your library, recent searches, and settings are stored locally on your device. There is no account, and we do not collect streaming-service credentials.</p>
+          <p>Searches you run are sent to our server to query a metadata provider; we do not tie them to a personal profile. You can clear recent searches and remove titles at any time. Export your library whenever you want a backup.</p>
         </Section>
 
         <Section title="Terms">
-          <p>WatchedNotWatched is provided “as is” during development. You are responsible for using your own legal access to any streaming service. Do not rely on guidance as a guarantee of suitability.</p>
-          <p>Broader commercialization (paid subscriptions, deeper provider integrations, an editorial catalog) requires legal review and appropriate licensing, which is not yet in place.</p>
+          <p>WatchedNotWatched is provided “as is” during development. You are responsible for using your own legal access to any streaming service.</p>
         </Section>
       </div>
     </main>

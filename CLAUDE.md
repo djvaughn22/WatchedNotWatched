@@ -1,7 +1,7 @@
 @AGENTS.md
 
 # WatchedNotWatched (watchednotwatched.com)
-Clean-viewing companion for families (in development). Secular. Accent: **#22D3EE**.
+Personal watch list for movies and TV: search, mark Watched or Want to Watch, add your take, keep going. Local-first, no accounts. Secular. Accent: **#22D3EE**.
 - Site name renders as WatchedNotWatched + cyan ".com" everywhere.
 
 ## Open Mirror family rules

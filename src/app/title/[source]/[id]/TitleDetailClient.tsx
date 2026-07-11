@@ -1,25 +1,47 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { getManifestForMedia, watchWithFilterAvailable } from "@/data/filterManifests";
-import { CATEGORY_LABELS } from "@/lib/filter/types";
-import { evaluateCompatibility } from "@/lib/compatibility";
-import { LEVEL_LABELS, isReviewed } from "@/lib/guidance";
-import { getEditorialStatus } from "@/lib/editorial-status";
-import type { MediaTitle, TrailerReference } from "@/lib/media/types";
+import { useEffect, useState } from "react";
+import type { MediaTitle, ProviderAvailability, SearchResultItem, TrailerReference } from "@/lib/media/types";
 import { buildHandoff, PROVIDERS } from "@/lib/providers";
-import { useProfiles, useSaved, useWatchStatus } from "@/lib/useLocal";
+import { useLibrary } from "@/lib/useLocal";
+import {
+  AGAIN_LABELS,
+  MY_TAKE_LABELS,
+  type Again,
+  type MyTake,
+  type TitleRef,
+} from "@/lib/library";
+import TitleCard from "@/app/components/TitleCard";
 
-export default function TitleDetailClient({ source, id, mediaType, editorialEnabled = false }: { source: string; id: string; mediaType: string; editorialEnabled?: boolean }) {
+const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
+const AGAINS: Again[] = ["yes", "maybe", "no"];
+
+const MONETIZATION_LABELS: Record<string, string> = {
+  sub: "Included with subscription",
+  free: "Free",
+  ads: "Free with ads",
+  rent: "Rent",
+  buy: "Buy",
+  unknown: "Availability unknown",
+};
+const MONETIZATION_ORDER = ["sub", "free", "ads", "rent", "buy", "unknown"];
+
+function groupProviders(availability: ProviderAvailability[]): Array<[string, ProviderAvailability[]]> {
+  const groups = new Map<string, ProviderAvailability[]>();
+  for (const a of availability) {
+    const key = a.monetization ?? "unknown";
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  }
+  return MONETIZATION_ORDER.filter((k) => groups.has(k)).map((k) => [k, groups.get(k)!]);
+}
+
+export default function TitleDetailClient({ source, id, mediaType }: { source: string; id: string; mediaType: string }) {
   const [title, setTitle] = useState<MediaTitle | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "done">("loading");
-  const [trailer, setTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
+  const [fallbackTrailer, setFallbackTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
+  const [similar, setSimilar] = useState<{ items: SearchResultItem[]; supported: boolean } | null>(null);
   const [shareMsg, setShareMsg] = useState("");
-  const [editorialMsg, setEditorialMsg] = useState("");
-  const { active } = useProfiles();
-  const { isSaved, toggle } = useSaved();
-  const { decisionFor, mark } = useWatchStatus();
+  const { entryFor, mark, take, again, hydrated } = useLibrary();
 
   useEffect(() => {
     let alive = true;
@@ -32,19 +54,20 @@ export default function TitleDetailClient({ source, id, mediaType, editorialEnab
         if (!data) { setStatus("error"); return; }
         setTitle(data);
         setStatus("done");
-        fetch(`/api/trailer?title=${encodeURIComponent(data.title)}&year=${data.releaseYear ?? ""}`)
+        if (!data.trailer) {
+          fetch(`/api/trailer?title=${encodeURIComponent(data.title)}&year=${data.releaseYear ?? ""}`)
+            .then((r) => r.json())
+            .then((t) => alive && setFallbackTrailer(t))
+            .catch(() => {});
+        }
+        fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
           .then((r) => r.json())
-          .then((t) => alive && setTrailer(t))
+          .then((s) => alive && setSimilar(s))
           .catch(() => {});
       })
       .catch(() => alive && setStatus("error"));
     return () => { alive = false; };
   }, [source, id, mediaType]);
-
-  const compat = useMemo(
-    () => (title?.guidance && active ? evaluateCompatibility(title.guidance, active) : null),
-    [title, active],
-  );
 
   if (status === "loading") return <div className="mx-auto max-w-3xl px-4 py-10"><div className="h-64 animate-pulse rounded-2xl bg-[#141d2e]" /></div>;
   if (status === "error" || !title) {
@@ -56,15 +79,25 @@ export default function TitleDetailClient({ source, id, mediaType, editorialEnab
     );
   }
 
-  const saved = isSaved(title.id);
-  const decision = decisionFor(title.id);
-  const markDecision = (d: "watched" | "not-watched") =>
-    mark({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl, decision: d });
-  const editorialStatus = getEditorialStatus(title);
-  const reviewedCats = (title.guidance?.categories ?? []).filter((c) => isReviewed(c.level) && c.level !== "none-noted");
+  const entry = hydrated ? entryFor(title.id) : undefined;
+  const ref: TitleRef = {
+    id: title.id,
+    source,
+    sourceId: id,
+    mediaType: title.mediaType,
+    title: title.title,
+    releaseYear: title.releaseYear,
+    posterUrl: title.posterUrl,
+    genres: title.genres,
+  };
+
+  const trailer = title.trailer ?? fallbackTrailer?.trailer ?? null;
+  const trailerSearchUrl =
+    fallbackTrailer?.searchUrl ??
+    `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title.title} ${title.releaseYear ?? ""} trailer`.trim())}`;
 
   const share = async () => {
-    const url = typeof window !== "undefined" ? `${window.location.origin}/title/${source}/${id}?mediaType=${mediaType}` : "";
+    const url = typeof window !== "undefined" ? `${window.location.origin}/title/${source}/${id}?mediaType=${title.mediaType}` : "";
     try {
       if (navigator.share) { await navigator.share({ title: title.title, url }); return; }
       await navigator.clipboard.writeText(url);
@@ -73,209 +106,127 @@ export default function TitleDetailClient({ source, id, mediaType, editorialEnab
     } catch { /* ignore */ }
   };
 
-  const addToEditorial = async () => {
-    if (!title) return;
-    try {
-      const res = await fetch("/api/editorial/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source,
-          sourceId: id,
-          item: {
-            id: title.id,
-            source,
-            sourceId: id,
-            mediaType,
-            title: title.title,
-            releaseYear: title.releaseYear,
-            posterUrl: title.posterUrl,
-            dataStatus: "live" as const,
-          },
-        }),
-      });
-      if (res.ok) {
-        setEditorialMsg("Added to review catalog ✓");
-        setTimeout(() => setEditorialMsg(""), 2000);
-      }
-    } catch { /* ignore */ }
-  };
-
-  const verdictColor =
-    compat?.verdict === "good-match" ? "border-[#22D3EE] text-[#22D3EE]"
-    : compat?.verdict === "outside-profile" ? "border-[#94a3b8] text-[#e8edf5]"
-    : "border-[#26324c] text-[#e8edf5]";
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      {/* 1. Identity */}
+      {/* Identity + actions */}
       <div className="flex gap-4">
-        <div className="h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#26324c]">
+        <div className="h-48 w-32 shrink-0 overflow-hidden rounded-lg border border-[#26324c] bg-[#0b1220] sm:h-60 sm:w-40">
           {title.posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={title.posterUrl} alt="" className="h-full w-full object-cover" />
+            <img src={title.posterUrl} alt={`${title.title} poster`} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
-              <div className="text-xl">📽</div>
-              <div className="text-[9px] font-semibold text-[#64748b]">No image</div>
+              <span className="text-2xl" aria-hidden>🎬</span>
+              <span className="text-[10px] font-semibold text-[#64748b]">No poster</span>
             </div>
           )}
         </div>
-        <div className="min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl font-black text-[#e8edf5]">{title.title}</h1>
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
-              editorialStatus.state === "reviewed" ? "border-[#22D3EE] text-[#22D3EE]"
-              : editorialStatus.state === "in-progress" ? "border-[#fbbf24] text-[#fbbf24]"
-              : "border-[#64748b] text-[#94a3b8]"
-            }`}>
-              {editorialStatus.state === "reviewed" ? "Reviewed"
-              : editorialStatus.state === "in-progress" ? "In review"
-              : editorialStatus.state === "basic-only" ? "Basic info"
-              : "Not reviewed"}
-            </span>
-          </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-black text-[#e8edf5] sm:text-3xl">{title.title}</h1>
           <p className="mt-1 text-sm text-[#94a3b8]">
-            {title.mediaType === "series" ? "Series" : "Movie"}{title.releaseYear ? ` · ${title.releaseYear}` : ""}{title.runtimeMinutes ? ` · ${title.runtimeMinutes} min` : ""}{title.officialRating ? ` · ${title.officialRating}` : ""}
+            {title.mediaType === "series" ? "TV" : "Movie"}
+            {title.releaseYear ? ` · ${title.releaseYear}` : ""}
+            {title.runtimeMinutes ? ` · ${title.runtimeMinutes} min` : ""}
+            {title.officialRating ? ` · ${title.officialRating}` : ""}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={() => markDecision("watched")}
-              aria-pressed={decision === "watched"}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${decision === "watched" ? "border-[#22D3EE] bg-[#22D3EE] text-[#06131a]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
-              {decision === "watched" ? "Watched ✓" : "Watched"}
+          {title.genres && title.genres.length > 0 && (
+            <p className="mt-1 text-xs text-[#64748b]">{title.genres.join(" · ")}</p>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => mark(ref, "want_to_watch")}
+              aria-pressed={entry?.status === "want_to_watch"}
+              className={`rounded-full px-4 py-2 text-sm font-bold ${entry?.status === "want_to_watch" ? "bg-[#22D3EE] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"}`}
+            >
+              {entry?.status === "want_to_watch" ? "On your list ✓" : "Want to Watch"}
             </button>
-            <button onClick={() => markDecision("not-watched")}
-              aria-pressed={decision === "not-watched"}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${decision === "not-watched" ? "border-[#e8edf5] bg-[#e8edf5] text-[#06131a]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
-              {decision === "not-watched" ? "Not watched ✓" : "Not watched"}
+            <button
+              onClick={() => mark(ref, "watched")}
+              aria-pressed={entry?.status === "watched"}
+              className={`rounded-full px-4 py-2 text-sm font-bold ${entry?.status === "watched" ? "bg-[#22D3EE] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:border-[#22D3EE] hover:text-[#e8edf5]"}`}
+            >
+              {entry?.status === "watched" ? "Watched ✓" : "Watched"}
             </button>
-            <button onClick={() => toggle({ id: title.id, source, sourceId: id, mediaType, title: title.title, releaseYear: title.releaseYear, posterUrl: title.posterUrl })}
-              aria-pressed={saved}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}>
-              {saved ? "Saved for later ✓" : "Save for later"}
-            </button>
-            <button onClick={share} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
+            <button onClick={share} className="rounded-full border border-[#26324c] px-4 py-2 text-sm font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
               {shareMsg || "Share"}
             </button>
-            {editorialEnabled && source !== "sample" && (
-              <button onClick={addToEditorial} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8]">
-                {editorialMsg || "Add to review"}
-              </button>
-            )}
           </div>
+
+          {entry?.status === "watched" && (
+            <div className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="My Take">
+                <span className="text-xs font-bold uppercase tracking-wide text-[#64748b]">My Take</span>
+                {TAKES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => take(title.id, entry?.myTake === t ? undefined : t)}
+                    aria-pressed={entry?.myTake === t}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${entry?.myTake === t ? "bg-[#e8edf5] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}
+                  >
+                    {MY_TAKE_LABELS[t]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Watch again?">
+                <span className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Again?</span>
+                {AGAINS.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => again(title.id, entry?.again === a ? undefined : a)}
+                    aria-pressed={entry?.again === a}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${entry?.again === a ? "bg-[#e8edf5] text-[#06131a]" : "border border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}
+                  >
+                    {AGAIN_LABELS[a]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. Compatibility */}
-      {active && (
-        <section className={`mt-6 rounded-2xl border bg-[#141d2e] p-5 ${compat ? verdictColor : "border-[#26324c] text-[#e8edf5]"}`}>
-          <p className="text-xs font-black uppercase tracking-widest text-[#94a3b8]">{active.name} profile</p>
-          {compat ? (
-            <>
-              <p className="mt-1 text-lg font-black">{compat.headline}</p>
-              <ul className="mt-2 space-y-1 text-sm text-[#e8edf5]">
-                {compat.reasons.map((r, i) => <li key={i}>· {r}</li>)}
-              </ul>
-            </>
-          ) : (
-            <>
-              <p className="mt-1 text-lg font-black">Not enough information</p>
-              <p className="mt-2 text-sm text-[#e8edf5]">WatchedNotWatched has not completed detailed guidance for this title. Use your best judgment and other resources before deciding.</p>
-            </>
-          )}
-        </section>
+      {/* Summary */}
+      {title.synopsis && (
+        <p className="mt-6 text-sm leading-relaxed text-[#94a3b8]">{title.synopsis}</p>
       )}
 
-      {/* 3/4. Guidance */}
-      <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
-        <h2 className="text-sm font-bold text-[#e8edf5]">Content guidance</h2>
-        {reviewedCats.length > 0 ? (
-          <>
-            <p className="mt-1 text-xs font-semibold text-[#22D3EE]">Reviewed by WatchedNotWatched</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {reviewedCats.map((c) => (
-                <span key={c.category} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#e8edf5]">
-                  {LEVEL_LABELS[c.level]} {CATEGORY_LABELS[c.category].toLowerCase()}
-                </span>
-              ))}
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-[#94a3b8]">{title.guidance?.overallNote}</p>
-          </>
-        ) : (
-          <>
-            <p className="mt-2 text-sm font-semibold text-[#e8edf5]">{editorialStatus.headline}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[#94a3b8]">
-              {editorialStatus.description}
-            </p>
-            {title.officialRating && (
-              <p className="mt-2 text-xs text-[#64748b]">Official rating: {title.officialRating}. Official age ratings are not the same as WatchedNotWatched guidance.</p>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* 5. Filtering */}
-      <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
-        <h2 className="text-sm font-bold text-[#e8edf5]">Filtering</h2>
-        {watchWithFilterAvailable(title.id) ? (() => {
-          const manifest = getManifestForMedia(title.id)!;
-          return (
-            <>
-              <p className="mt-2 text-sm font-semibold text-[#22D3EE]">Filtering is available for the version listed.</p>
-              <p className="mt-1 text-sm text-[#94a3b8]">
-                {manifest.edition ?? "Supported version"} · {manifest.events.length} filter events
-                {manifest.verification?.state === "verified" && manifest.verification.verifiedAt ? ` · track verified ${manifest.verification.verifiedAt}` : ""}
-              </p>
-              <Link href={`/watch/${encodeURIComponent(title.id)}`}
-                className="mt-3 inline-block rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-bold text-[#06131a]">
-                Watch with Filter
-              </Link>
-              <p className="mt-2 text-xs text-[#94a3b8]">Plays in the WatchedNotWatched player with your profile’s filters applied.</p>
-            </>
-          );
-        })() : (
-          <>
-            <p className="mt-2 text-sm font-semibold text-[#e8edf5]">Filtering is not verified for this version.</p>
-            <p className="mt-1 text-sm text-[#94a3b8]">
-              Automatic muting and skipping work only on video WatchedNotWatched is allowed to play, with a filter track verified for the exact version. For this title, WatchedNotWatched provides content guidance and provider links — automatic filtering is not supported yet.
-            </p>
-            <Link href="/filter-lab" className="mt-2 inline-block text-sm font-semibold text-[#22D3EE] hover:underline">
-              See how filtering works in the Filter Lab →
-            </Link>
-          </>
-        )}
-      </section>
-
-      {/* 6. Where to watch */}
+      {/* Where to watch */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
         <h2 className="text-sm font-bold text-[#e8edf5]">Where to watch</h2>
         {title.availability && title.availability.length > 0 ? (
           <>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {title.availability.map((a, i) => {
-                const known = a.providerId && PROVIDERS[a.providerId];
-                const handoff = known ? buildHandoff({ providerId: a.providerId, title: title.title, watchOptionsUrl: title.watchOptionsUrl }) : null;
-                if (handoff?.url) {
-                  return (
-                    <a key={i} href={handoff.url} target="_blank" rel="noopener noreferrer"
-                      className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm font-semibold text-[#e8edf5] hover:border-[#22D3EE]">
-                      {handoff.label}{a.monetization ? ` · ${a.monetization}` : ""}
-                    </a>
-                  );
-                }
-                return <span key={i} className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm text-[#94a3b8]">{a.providerName}{a.monetization ? ` · ${a.monetization}` : ""}</span>;
-              })}
-            </div>
+            {groupProviders(title.availability).map(([monetization, providers]) => (
+              <div key={monetization} className="mt-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#64748b]">{MONETIZATION_LABELS[monetization]}</p>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {providers.map((a, i) => {
+                    const known = a.providerId && PROVIDERS[a.providerId];
+                    const handoff = known ? buildHandoff({ providerId: a.providerId, title: title.title, watchOptionsUrl: title.watchOptionsUrl }) : null;
+                    if (handoff?.url) {
+                      return (
+                        <a key={i} href={handoff.url} target="_blank" rel="noopener noreferrer"
+                          className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm font-semibold text-[#e8edf5] hover:border-[#22D3EE]">
+                          {a.providerName} ↗
+                        </a>
+                      );
+                    }
+                    return <span key={i} className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm text-[#94a3b8]">{a.providerName}</span>;
+                  })}
+                </div>
+              </div>
+            ))}
             {title.watchOptionsUrl && (
-              <a href={title.watchOptionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-[#22D3EE] hover:underline">View all watch options →</a>
+              <a href={title.watchOptionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-[#22D3EE] hover:underline">
+                All watch options →
+              </a>
             )}
-            <p className="mt-2 text-xs text-[#94a3b8]">Availability and subscriptions vary by region and provider. WatchedNotWatched opens the provider — it does not connect your account.</p>
           </>
         ) : (
           <>
-            <p className="mt-2 text-sm text-[#94a3b8]">No live availability data for this title. Search the major providers:</p>
+            <p className="mt-2 text-sm text-[#94a3b8]">No availability data for this title right now. Search the major providers:</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {["netflix", "prime", "disney", "max", "hulu", "appletv", "paramount", "peacock", "youtube", "tubi"].map((pid) => {
+              {["netflix", "prime", "disney", "max", "hulu", "appletv", "paramount", "peacock", "tubi"].map((pid) => {
                 const h = buildHandoff({ providerId: pid, title: title.title });
                 return (
                   <a key={pid} href={h.url} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[#26324c] px-3 py-1.5 text-sm font-semibold text-[#e8edf5] hover:border-[#22D3EE]">
@@ -284,48 +235,62 @@ export default function TitleDetailClient({ source, id, mediaType, editorialEnab
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-[#94a3b8]">Availability and subscriptions vary by region and provider. WatchedNotWatched opens the provider — it does not connect your account.</p>
           </>
         )}
+        <p className="mt-3 text-xs text-[#64748b]">
+          {title.updatedAt ? `Checked ${new Date(title.updatedAt).toLocaleDateString()}. ` : ""}
+          Availability changes and varies by region; a subscription or purchase may be required. WatchedNotWatched opens the provider — it does not connect your account.
+        </p>
       </section>
 
-      {/* 7. Trailer */}
+      {/* Trailer */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
         <h2 className="text-sm font-bold text-[#e8edf5]">Trailer</h2>
-        {trailer?.trailer ? (
+        {trailer ? (
           <>
             <div className="relative mt-3 aspect-video overflow-hidden rounded-lg bg-black">
               <iframe
                 className="absolute inset-0 h-full w-full"
-                src={`https://www.youtube-nocookie.com/embed/${trailer.trailer.youtubeId}`}
-                title={trailer.trailer.title}
+                src={`https://www.youtube-nocookie.com/embed/${trailer.youtubeId}`}
+                title={trailer.title}
                 allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
-            <p className="mt-2 text-xs text-[#94a3b8]">
-              {trailer.trailer.official ? "Official trailer" : "Trailer result"}{trailer.trailer.channelTitle ? ` · ${trailer.trailer.channelTitle}` : ""} · via YouTube
+            <p className="mt-2 text-xs text-[#64748b]">
+              {trailer.official ? "Official trailer" : "Trailer"} · via YouTube
             </p>
           </>
         ) : (
           <p className="mt-2 text-sm text-[#94a3b8]">
             No trailer loaded.{" "}
-            {trailer?.searchUrl && <a href={trailer.searchUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#22D3EE] hover:underline">Search on YouTube →</a>}
+            <a href={trailerSearchUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#22D3EE] hover:underline">Search on YouTube →</a>
           </p>
         )}
       </section>
 
-      {/* Sources and Credits */}
+      {/* Similar titles */}
+      {similar && similar.supported && similar.items.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold text-[#e8edf5]">Similar titles</h2>
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {similar.items.slice(0, 8).map((it) => (
+              <li key={it.id}>
+                <TitleCard item={it} entry={hydrated ? entryFor(it.id) : undefined} onMark={mark} onTake={take} onAgain={again} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Sources */}
       {title.attribution && title.attribution.length > 0 && (
-        <section className="mt-6 border-t border-[#26324c] pt-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[#64748b]">Sources</h3>
-          <ul className="mt-2 space-y-1">
+        <section className="mt-8 border-t border-[#26324c] pt-4">
+          <ul className="space-y-1">
             {title.attribution.map((a, i) => (
               <li key={i} className="text-[11px] leading-relaxed text-[#64748b]">
                 {a.url ? (
-                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#94a3b8]">
-                    {a.text}
-                  </a>
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#94a3b8]">{a.text}</a>
                 ) : (
                   a.text
                 )}

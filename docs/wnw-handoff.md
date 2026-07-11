@@ -2,75 +2,66 @@
 
 _Updated: 2026-07-10 · Next.js 16.2.9 App Router · React 19 · Tailwind v4 · TypeScript strict · Vitest_
 
-## Product definition
+## Product
 
-WatchedNotWatched helps families know what is in a movie or show, decide what to avoid, mark titles Watched / Not Watched / Saved for later, and — for supported media — watch through the WatchedNotWatched player with automatic filtering applied.
+A fast personal watch list for movies and TV. Search a title, tap **Watched**
+or **Want to Watch**, optionally add **My Take** (Loved it / Liked it / Fine /
+Not for me) and **Again?** (Yes / Maybe / No), keep going. Local-first, no
+accounts. Hero line: "Remember what you watched. Find what comes next."
 
-## Accurate public claims
+The pre-July-2026 family-filtering product (Filter Lab, Watch with Filter,
+Studio, profiles, guidance) was removed on DJ's decision. Recover via git tag
+`pre-mvp1-reset-2026-07-10`; planning docs live in `docs/archive/`.
+Do not revive filtering.
 
-- Search movies and shows (TVmaze + Wikidata + local sample catalog).
-- See content guidance status honestly (Reviewed / In review / Basic info / Not reviewed).
-- Set a family profile; see how a title fits ("Not enough information" when unreviewed).
-- Mark titles Watched / Not Watched / Save for later; persists on this device.
-- Watch with Filter works on ONE title today: the bundled CC-BY demo clip, with a verified filter track.
-- For every other title: "Filtering is not verified for this version." Guidance + provider search links only.
-- WatchedNotWatched never connects to, controls, or alters playback from streaming services.
+## Routes
 
-## What works now (verified 2026-07-10)
+`/` (search-first home + library snapshot) · `/search` · `/library` (views,
+filters, sort, bulk actions, export) · `/saved` → redirects to `/library` ·
+`/title/[source]/[id]` · `/about` · `/legal` · APIs: `/api/search`,
+`/api/title`, `/api/similar`, `/api/trailer`.
 
-- **Filter Engine** (`src/lib/filter/engine.ts`): real mute/skip/warn on any `ControllablePlayer`. Verified by playback observation: mute engaged exactly in authored regions, skips jumped past authored regions.
-- **Watch with Filter** (`/watch/[mediaId]`): plays authorized media, applies the active profile, verified-edition gate, overlay notices, manual skip, filtering on/off, completion → Mark Watched.
-- **Watched / Not Watched / Save for later**: title page buttons, `/saved` ("My titles") merged list with filter chips, localStorage persistence (`wnw.status.v1`, `wnw.saved.v1`).
-- **Search**: hybrid local + TVmaze + Wikidata; `?q=` deep links work and stay shareable.
-- **Filter Lab** (`/filter-lab`): interactive demo. **Filter Studio** (`/studio/filters`): manifest authoring, gated off in production unless `FEATURE_FILTER_STUDIO=true`.
+## Data model (localStorage)
 
-## Prototype-only / planned
+`wnw.library.v2` — `{ version: 2, entries: LibraryEntry[] }`, pure logic in
+`src/lib/library.ts` (tested). Entry: status `want_to_watch|watched`, optional
+`myTake`, `again`, `addedAt`, `watchedAt`, genres. Views are derived: Watch
+Again = watched + again yes/maybe; Favorites = loved; Not for Me = not_for_me.
+One-time migration from legacy `wnw.saved.v1` + `wnw.status.v1` runs on first
+load (old keys left as backup): saved→want_to_watch, watched→watched,
+not-watched→want_to_watch. Corrupted data → empty library.
+Other keys: `wnw.recent.v1` (recent searches), `wnw.tally.v1` (sessionStorage
+logging count).
 
-- Editorial drafts are in-memory server state (vanish per instance). "Add to review" button is gated to dev/flag.
-- No commercial title has a filter track. That requires licensed/original/PD catalog growth (docs/mvp2-provider-path.md Option D) — NOT a protected-stream browser extension (rejected: legal/fragility, see Option B).
-- No accounts, no cross-device sync, no payments. Do not claim them.
+## Data sources
 
-## Timestamp-track format (FilterManifest)
+- **TMDB** (`src/lib/media/tmdb.ts`, server-only `TMDB_ACCESS_TOKEN`):
+  movie+TV search, posters, details, trailers (YouTube ids), watch providers
+  (JustWatch data — attribution required and rendered), similar titles.
+  **Licensing: free with attribution while the app is non-commercial. Charging
+  money requires TMDB's commercial license (~$149/mo) FIRST.**
+- **TVmaze** (keyless): TV fallback when no TMDB key is configured.
+- **Wikidata**: legacy title-detail ids only.
+- `/api/trailer`: optional `YOUTUBE_API_KEY`; degrades to a YouTube search link.
+- Provider links: `src/lib/providers.ts` registry + honest handoff builder
+  (search links when no verified deep link). No credentials, no embedding.
 
-`src/lib/filter/types.ts`. v1 fields plus version/verification fields (all optional, validated when present): `edition`, `provider`, `region`, `runtimeSeconds`, `runtimeToleranceSeconds`, `verification {state, verifiedAt, method, notes}`.
+## Export / share
 
-**Safety gate:** `canRunAutomaticActions(manifest, actualDuration)` (`src/lib/filter/manifest.ts`) — automatic actions run only when the track is `verified` AND the loaded media's duration matches the authored runtime within tolerance. Mismatch → the watch page shows "Filtering is not verified for this version" and the engine never starts. Never fabricate timestamps for commercial titles.
+`src/lib/export.ts` (tested): real CSV / JSON / Markdown downloads (JSON is
+restore-ready), Web Share with clipboard fallback, `mailto:` summary (no
+attachment claims).
 
-## Preference model
+## Monetization gate
 
-- Profiles (`src/lib/profiles.ts`, `wnw.profiles.v1`): per-category tolerance thresholds (none-noted → severe).
-- `settingsFromProfile` (`src/lib/filter/profileSettings.ts`): an event is filtered when its severity exceeds the profile's threshold; a category with no stated threshold is treated as strictest. Session category toggles on the watch page don't overwrite the profile.
-
-## Registry
-
-`src/data/filterManifests.ts`: `FILTER_MANIFESTS` (tracks by `mediaId`) + `AUTHORIZED_MEDIA` (media we may legally play — owned/licensed/PD/CC only; commercial streams never belong there) + `watchWithFilterAvailable()`. The demo title also lives in `src/data/catalog.ts` (`sample:demo-reel`) so search finds it.
-
-## Supported today
-
-- Browser: desktop + mobile web (Chrome verified).
-- Provider: WatchedNotWatched's own player only.
-- Titles/editions:
-  1. "Filter Demo Reel" — bundled 10s Big Buck Bunny clip (CC-BY 3.0, Blender Foundation), track `demo-reel-v1`, verified 2026-07-10 by manual playback check.
-  2. "Steamboat Willie" (1928) — US public domain since 2024-01-01; streams from the Internet Archive (466.7s copy, item `steamboat-willie-1928-by-walt-disney_202401`); track `steamboat-willie-1928-ia-v1`, 6 events authored by frame-by-frame visual inspection of that exact file, verified 2026-07-10. Visual review only — audio (musical score, no dialogue) not separately reviewed. Note: PD status asserted for the US; the stream depends on archive.org availability and fails safely if unreachable.
-  3. "The Skeleton Dance" (1929) — US public domain since 2025-01-01; streams from the Internet Archive (331.95s copy, item `videoplayback-5_20260207`); track `skeleton-dance-1929-ia-v1`, 6 events (mostly the "frightening" category — two startle skips, four warns), same frame-inspection method and caveats as above. First title where the Family profile tolerates the whole track while Little Kids gets skips — the threshold system visibly differentiates.
-
-## Privacy / security
-
-localStorage only (`wnw.profiles.v1`, `wnw.saved.v1`, `wnw.status.v1`, `wnw.recent.v1`, `wnw.studio.draft.v1`). No analytics, no trackers, no accounts, no credentials, no client-exposed API keys. Server API routes are keyless by default. `/api/editorial/add` is unauthenticated but in-memory only — gate or remove before it matters.
-
-## Legal / cost questions
-
-- TVmaze data is CC BY-SA with a commercial tier — confirm terms before paid launch.
-- Wikidata CC0: safe. YouTube API key optional.
-- Current cost: $0. No paid services. Vercel bandwidth is the only scaling concern if longer video is bundled.
-
-## Next development phase
-
-MVP2 Option D: grow the licensed/original/PD catalog. Per title: add media to `AUTHORIZED_MEDIA` (or hosted URL), author its manifest in the Filter Studio, verify timing by playback, register in `FILTER_MANIFESTS` + catalog. Everything else (title page, watch page, statuses) picks it up automatically.
+Free product, $0 costs today. Before charging (e.g. $1/mo): 1) accounts +
+payments build, 2) TMDB commercial license. Breakeven ≈150 subscribers.
 
 ## For the next session
 
-1. Read this file and `docs/mvp2-provider-path.md`.
-2. `npm test` (47 tests) · `npx tsc --noEmit` · `npm run build` must stay clean.
-3. Push to main = production deploy (Vercel).
-4. Do not touch shared Open Mirror chrome here (synced from hub). Do not fabricate timestamps. Do not build a protected-stream extension.
+1. `npm test` · `npx tsc --noEmit` · `npm run build` must stay clean.
+2. Push to main = production deploy (Vercel).
+3. Shared Open Mirror chrome (OpenMirrorNav/Footer/Theme) is synced from the
+   hub — never edit here.
+4. Next feature candidates: JSON import/restore, quick-rate mode for the
+   watched pile, PWA install.

@@ -2,179 +2,110 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  getActiveProfile,
-  loadStore,
-  resetStore,
-  saveStore,
-  type ProfileStore,
-  type ViewingProfile,
-} from "./profiles";
-import {
-  applyDecision,
-  clearDecision,
-  getDecision,
-  sanitizeEntries,
-  WATCH_STATUS_KEY,
-  type WatchDecision,
-  type WatchStatusEntry,
-} from "./watchStatus";
+  emptyStore,
+  LEGACY_SAVED_KEY,
+  LEGACY_STATUS_KEY,
+  LIBRARY_KEY,
+  migrateLegacy,
+  removeEntries,
+  removeEntry,
+  restoreEntries,
+  sanitizeStore,
+  setAgain,
+  setMyTake,
+  setStatus,
+  type Again,
+  type LibraryEntry,
+  type LibraryStore,
+  type LibraryStatus,
+  type MyTake,
+  type TitleRef,
+} from "./library";
 
-export function useProfiles() {
-  const [store, setStore] = useState<ProfileStore | null>(null);
-
-  useEffect(() => {
-    // Client-only hydration of on-device data (not available during SSR).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStore(loadStore());
-  }, []);
-
-  const update = useCallback((next: ProfileStore) => {
-    setStore(next);
-    saveStore(next);
-  }, []);
-
-  const setActive = useCallback(
-    (id: string) => {
-      setStore((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev, activeId: id };
-        saveStore(next);
-        return next;
-      });
-    },
-    [],
-  );
-
-  const reset = useCallback(() => setStore(resetStore()), []);
-
-  const active: ViewingProfile | null = store ? getActiveProfile(store) : null;
-  return { store, active, setActive, update, reset };
-}
-
-// ---- Saved titles ------------------------------------------------------
-export interface SavedTitle {
-  id: string;
-  source: string;
-  sourceId: string;
-  mediaType: string;
-  title: string;
-  releaseYear?: number;
-  posterUrl?: string;
-  savedAt: string;
-}
-
-const SAVED_KEY = "wnw.saved.v1";
-
-function readSaved(): SavedTitle[] {
-  if (typeof window === "undefined") return [];
+function readJson(key: string): unknown {
   try {
-    const raw = window.localStorage.getItem(SAVED_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((t) => t && typeof t.id === "string" && typeof t.title === "string");
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-export function useSaved() {
-  const [saved, setSaved] = useState<SavedTitle[]>([]);
+/** Load the library, running the one-time legacy migration if needed. */
+function loadLibrary(): LibraryStore {
+  if (typeof window === "undefined") return emptyStore();
+  const current = readJson(LIBRARY_KEY);
+  if (current) return sanitizeStore(current);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSaved(readSaved());
-  }, []);
-
-  const persist = useCallback((next: SavedTitle[]) => {
-    setSaved(next);
+  const migrated = migrateLegacy(readJson(LEGACY_SAVED_KEY), readJson(LEGACY_STATUS_KEY));
+  if (migrated.entries.length > 0) {
     try {
-      window.localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+      window.localStorage.setItem(LIBRARY_KEY, JSON.stringify(migrated));
     } catch {
       /* ignore */
     }
-  }, []);
-
-  const isSaved = useCallback((id: string) => saved.some((t) => t.id === id), [saved]);
-
-  const toggle = useCallback(
-    (item: Omit<SavedTitle, "savedAt">) => {
-      setSaved((prev) => {
-        const exists = prev.some((t) => t.id === item.id);
-        const next = exists ? prev.filter((t) => t.id !== item.id) : [{ ...item, savedAt: new Date().toISOString() }, ...prev];
-        try {
-          window.localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore */
-        }
-        return next;
-      });
-    },
-    [],
-  );
-
-  const remove = useCallback(
-    (id: string) => persist(readSaved().filter((t) => t.id !== id)),
-    [persist],
-  );
-
-  return { saved, isSaved, toggle, remove };
-}
-
-// ---- Watched / Not Watched ----------------------------------------------
-function readStatuses(): WatchStatusEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(WATCH_STATUS_KEY);
-    return raw ? sanitizeEntries(JSON.parse(raw)) : [];
-  } catch {
-    return [];
   }
+  return migrated;
 }
 
-function writeStatuses(next: WatchStatusEntry[]) {
+function writeLibrary(store: LibraryStore) {
   try {
-    window.localStorage.setItem(WATCH_STATUS_KEY, JSON.stringify(next));
+    window.localStorage.setItem(LIBRARY_KEY, JSON.stringify(store));
   } catch {
     /* ignore */
   }
 }
 
-export function useWatchStatus() {
-  const [entries, setEntries] = useState<WatchStatusEntry[]>([]);
+export function useLibrary() {
+  const [store, setStore] = useState<LibraryStore>(emptyStore());
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // Client-only hydration of on-device data (not available during SSR).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEntries(readStatuses());
+    setStore(loadLibrary());
+    setHydrated(true);
   }, []);
 
-  const decisionFor = useCallback(
-    (id: string): WatchDecision | null => getDecision(entries, id),
-    [entries],
-  );
-
-  /** Set a decision; choosing the same decision again clears it. */
-  const mark = useCallback(
-    (entry: Omit<WatchStatusEntry, "decidedAt">) => {
-      setEntries((prev) => {
-        const next =
-          getDecision(prev, entry.id) === entry.decision
-            ? clearDecision(prev, entry.id)
-            : applyDecision(prev, entry);
-        writeStatuses(next);
-        return next;
-      });
-    },
-    [],
-  );
-
-  const clear = useCallback((id: string) => {
-    setEntries((prev) => {
-      const next = clearDecision(prev, id);
-      writeStatuses(next);
+  const apply = useCallback((fn: (prev: LibraryStore) => LibraryStore) => {
+    setStore((prev) => {
+      const next = fn(prev);
+      writeLibrary(next);
       return next;
     });
   }, []);
 
-  return { entries, decisionFor, mark, clear };
+  const mark = useCallback(
+    (ref: TitleRef, status: LibraryStatus) => apply((prev) => setStatus(prev, ref, status)),
+    [apply],
+  );
+
+  const take = useCallback(
+    (id: string, myTake: MyTake | undefined) => apply((prev) => setMyTake(prev, id, myTake)),
+    [apply],
+  );
+
+  const again = useCallback(
+    (id: string, value: Again | undefined) => apply((prev) => setAgain(prev, id, value)),
+    [apply],
+  );
+
+  const remove = useCallback((id: string) => apply((prev) => removeEntry(prev, id)), [apply]);
+
+  const removeMany = useCallback(
+    (ids: string[]) => apply((prev) => removeEntries(prev, ids)),
+    [apply],
+  );
+
+  const restore = useCallback(
+    (entries: LibraryEntry[]) => apply((prev) => restoreEntries(prev, entries)),
+    [apply],
+  );
+
+  const entryFor = useCallback(
+    (id: string): LibraryEntry | undefined => store.entries.find((e) => e.id === id),
+    [store],
+  );
+
+  return { store, entries: store.entries, hydrated, entryFor, mark, take, again, remove, removeMany, restore };
 }

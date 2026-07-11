@@ -1,6 +1,5 @@
 // Normalized internal media model. The UI consumes THIS, never a raw external
 // API shape. External response types stay inside adapters.
-import type { ContentGuidance } from "../guidance";
 
 export type MediaType = "movie" | "series" | "episode" | "video";
 
@@ -40,7 +39,6 @@ export interface MediaTitle {
   runtimeMinutes?: number;
   genres?: string[];
   officialRating?: string;
-  guidance?: ContentGuidance;
   availability?: ProviderAvailability[];
   watchOptionsUrl?: string; // e.g. a TMDB/JustWatch watch page
   trailer?: TrailerReference;
@@ -78,4 +76,5 @@ export interface MediaMetadataAdapter {
   searchTitles(query: string, options?: SearchOptions): Promise<SearchResult>;
   getTitle(sourceId: string, mediaType: MediaType): Promise<MediaTitle | null>;
   getProviders?(sourceId: string, mediaType: MediaType, region: string): Promise<ProviderAvailability[]>;
+  getSimilar?(sourceId: string, mediaType: MediaType): Promise<SearchResultItem[]>;
 }

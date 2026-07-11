@@ -1,8 +1,6 @@
 // Wikidata metadata adapter (SERVER ONLY).
 // Free, CC0 API for movie and general title metadata.
 // Approved for commercial use.
-import { ALL_CATEGORIES } from "../filter/types";
-import { notReviewedGuidance } from "../guidance";
 import type {
   AttributionReference,
   MediaMetadataAdapter,
@@ -161,7 +159,6 @@ export function createWikidataAdapter(): MediaMetadataAdapter {
       runtimeMinutes: undefined,
       genres: undefined,
       officialRating: undefined,
-      guidance: notReviewedGuidance([...ALL_CATEGORIES]),
       availability: [],
       attribution: [WIKIDATA_ATTRIBUTION],
       dataStatus: "live",

@@ -1,8 +1,6 @@
 // TVmaze metadata adapter (SERVER ONLY).
 // Free, keyless API for television search and metadata.
 // Approved for commercial use.
-import { ALL_CATEGORIES } from "../filter/types";
-import { notReviewedGuidance } from "../guidance";
 import type {
   AttributionReference,
   MediaMetadataAdapter,
@@ -124,7 +122,6 @@ export function createTvmazeAdapter(): MediaMetadataAdapter {
       runtimeMinutes: show.runtime,
       genres: show.genres?.filter(Boolean),
       officialRating: undefined, // TVmaze doesn't provide MPAA/TV ratings
-      guidance: notReviewedGuidance([...ALL_CATEGORIES]),
       availability: [],
       attribution: [TVMAZE_ATTRIBUTION],
       dataStatus: "live",

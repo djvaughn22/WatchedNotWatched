@@ -3,7 +3,7 @@ import SearchExperience from "../components/SearchExperience";
 
 export const metadata: Metadata = {
   title: "Search — WatchedNotWatched",
-  description: "Search a movie or show, then review content guidance and find where to watch.",
+  description: "Search a movie or show, mark it Watched or Want to Watch, and keep going.",
 };
 
 export default async function SearchPage({

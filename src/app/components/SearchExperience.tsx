@@ -1,11 +1,16 @@
 "use client";
 
-import Link from "next/link";
+// The rapid-log loop: type a few letters → poster grid → one tap → next.
+// A session tally keeps score; the box is always ready for the next title.
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SearchResult, SearchResultItem } from "@/lib/media/types";
-import { useSaved } from "@/lib/useLocal";
+import { useLibrary } from "@/lib/useLocal";
+import type { LibraryStatus, TitleRef } from "@/lib/library";
+import TitleCard from "./TitleCard";
 
 const RECENT_KEY = "wnw.recent.v1";
+const TALLY_KEY = "wnw.tally.v1"; // per-browser-session logging count
 
 function readRecent(): string[] {
   if (typeof window === "undefined") return [];
@@ -15,6 +20,14 @@ function readRecent(): string[] {
     return Array.isArray(arr) ? arr.filter((x) => typeof x === "string").slice(0, 6) : [];
   } catch {
     return [];
+  }
+}
+
+function readTally(): number {
+  try {
+    return Number(window.sessionStorage.getItem(TALLY_KEY)) || 0;
+  } catch {
+    return 0;
   }
 }
 
@@ -32,13 +45,17 @@ export default function SearchExperience({
   const [query, setQuery] = useState(initialQuery);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
-  const [dataStatus, setDataStatus] = useState<SearchResult["dataStatus"]>("live");
   const [recent, setRecent] = useState<string[]>([]);
+  const [tally, setTally] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const { isSaved, toggle } = useSaved();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { entryFor, mark, take, again, hydrated } = useLibrary();
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setRecent(readRecent()), []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecent(readRecent());
+    setTally(readTally());
+  }, []);
 
   const runSearch = useCallback((q: string) => {
     abortRef.current?.abort();
@@ -54,7 +71,6 @@ export default function SearchExperience({
       .then((r) => r.json() as Promise<SearchResult>)
       .then((data) => {
         setItems(data.items ?? []);
-        setDataStatus(data.dataStatus);
         setStatus("done");
       })
       .catch((e) => {
@@ -65,7 +81,7 @@ export default function SearchExperience({
 
   // Debounce.
   useEffect(() => {
-    const t = setTimeout(() => runSearch(query), 350);
+    const t = setTimeout(() => runSearch(query), 300);
     return () => clearTimeout(t);
   }, [query, runSearch]);
 
@@ -96,44 +112,80 @@ export default function SearchExperience({
     }
   };
 
+  const bumpTally = () => {
+    setTally((t) => {
+      const next = t + 1;
+      try {
+        window.sessionStorage.setItem(TALLY_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const handleMark = (ref: TitleRef, s: LibraryStatus) => {
+    const wasNew = !entryFor(ref.id) || entryFor(ref.id)?.status !== s;
+    mark(ref, s);
+    if (wasNew) bumpTally();
+    if (query.trim().length >= 2) commitRecent(query.trim());
+  };
+
+  const nextTitle = () => {
+    setQuery("");
+    setItems([]);
+    setStatus("idle");
+    inputRef.current?.focus();
+  };
+
   return (
     <div>
       <div className="relative">
         <input
+          ref={inputRef}
           type="search"
           value={query}
           autoFocus={autoFocus}
           onChange={(e) => setQuery(e.target.value)}
-          onBlur={() => query.trim().length >= 2 && commitRecent(query.trim())}
           placeholder="Search a movie or show…"
           aria-label="Search a movie or show"
           className="w-full rounded-full border border-[#26324c] bg-[#141d2e] px-5 py-3.5 text-base text-[#e8edf5] outline-none placeholder:text-[#64748b] focus:border-[#22D3EE]"
         />
+        {query.length > 0 && (
+          <button
+            onClick={nextTitle}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-sm font-bold text-[#64748b] hover:text-[#e8edf5]"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
-      {recent.length > 0 && status === "idle" && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-[#94a3b8]">Recent:</span>
-          {recent.map((r) => (
-            <button key={r} onClick={() => setQuery(r)} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#94a3b8] hover:text-[#e8edf5]">
-              {r}
-            </button>
-          ))}
-          <button onClick={clearRecent} className="text-xs text-[#64748b] underline">Clear</button>
-        </div>
-      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {tally > 0 && (
+          <span className="rounded-full border border-[#22D3EE] px-3 py-1 text-xs font-bold text-[#22D3EE]">
+            {tally} logged this session
+          </span>
+        )}
+        {recent.length > 0 && status === "idle" && (
+          <>
+            <span className="text-xs text-[#94a3b8]">Recent:</span>
+            {recent.map((r) => (
+              <button key={r} onClick={() => setQuery(r)} className="rounded-full border border-[#26324c] px-3 py-1 text-xs text-[#94a3b8] hover:text-[#e8edf5]">
+                {r}
+              </button>
+            ))}
+            <button onClick={clearRecent} className="text-xs text-[#64748b] underline">Clear</button>
+          </>
+        )}
+      </div>
 
-      {dataStatus === "sample" && status === "done" && items.length > 0 && (
-        <p className="mt-3 rounded-lg border border-[#26324c] bg-[#141d2e] px-3 py-2 text-xs text-[#94a3b8]">
-          Showing <strong className="text-[#e8edf5]">sample records</strong> — the movie database is temporarily unavailable.
-        </p>
-      )}
-
-      <div className="mt-5">
+      <div className="mt-4">
         {status === "loading" && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl border border-[#26324c] bg-[#141d2e]" />
+              <div key={i} className="aspect-[2/4] animate-pulse rounded-xl border border-[#26324c] bg-[#141d2e]" />
             ))}
           </div>
         )}
@@ -146,61 +198,26 @@ export default function SearchExperience({
         )}
 
         {status === "done" && items.length === 0 && query.trim().length >= 2 && (
-          dataStatus === "sample" ? (
-            <div className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center">
-              <p className="text-sm font-semibold text-[#e8edf5]">The movie database is temporarily unavailable.</p>
-              <p className="mt-1 text-sm text-[#94a3b8]">Showing sample titles for now — try again in a moment, or see <a href="/family-picks" className="text-[#22D3EE] hover:underline">Family Picks</a>.</p>
-            </div>
-          ) : (
-            <p className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">No results for “{query.trim()}”.</p>
-          )
+          <p className="rounded-xl border border-[#26324c] bg-[#141d2e] p-5 text-center text-sm text-[#94a3b8]">
+            No results for “{query.trim()}”. Check the spelling or try a shorter version of the name.
+          </p>
         )}
 
-        {items.length > 0 && (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {items.map((it) => {
-              const saved = isSaved(it.id);
-              const statusLabel = it.dataStatus === "editorial" ? "In review" : it.dataStatus === "sample" ? "Sample" : undefined;
-              return (
-                <li key={it.id} className="flex flex-col gap-3 rounded-xl border border-[#26324c] bg-[#141d2e] p-3">
-                  <div className="flex gap-3">
-                    <div className="h-24 w-16 shrink-0 overflow-hidden rounded-md bg-[#0b1220]">
-                      {it.posterUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-2xl">🎬</div>
-                      )}
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <p className="truncate text-sm font-bold text-[#e8edf5]">{it.title}</p>
-                      <p className="text-xs text-[#94a3b8]">
-                        {it.mediaType === "series" ? "Series" : "Movie"}{it.releaseYear ? ` · ${it.releaseYear}` : ""}{it.officialRating ? ` · ${it.officialRating}` : ""}
-                      </p>
-                      {statusLabel && (
-                        <p className="mt-1 text-[11px] text-[#64748b]">{statusLabel}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/title/${it.source}/${it.sourceId}?mediaType=${it.mediaType}`}
-                      className="rounded-full bg-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#06131a]"
-                    >
-                      Details
-                    </Link>
-                    <button
-                      onClick={() => toggle({ id: it.id, source: it.source, sourceId: it.sourceId, mediaType: it.mediaType, title: it.title, releaseYear: it.releaseYear, posterUrl: it.posterUrl })}
-                      aria-pressed={saved}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${saved ? "border-[#22D3EE] text-[#22D3EE]" : "border-[#26324c] text-[#94a3b8] hover:text-[#e8edf5]"}`}
-                    >
-                      {saved ? "Saved ✓" : "Save"}
-                    </button>
-                  </div>
+        {status === "done" && items.length > 0 && hydrated && (
+          <>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {items.map((it) => (
+                <li key={it.id}>
+                  <TitleCard item={it} entry={entryFor(it.id)} onMark={handleMark} onTake={take} onAgain={again} />
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+            <div className="mt-4 text-center">
+              <button onClick={nextTitle} className="rounded-full bg-[#22D3EE] px-5 py-2.5 text-sm font-bold text-[#06131a]">
+                Next title →
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

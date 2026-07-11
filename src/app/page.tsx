@@ -2,15 +2,11 @@ import type { Metadata } from "next";
 import { Homepage } from "./components/Homepage";
 
 export const metadata: Metadata = {
-  title: "WatchedNotWatched — Watch with confidence.",
+  title: "WatchedNotWatched — Remember what you watched.",
   description:
-    "Know what is in a movie or show, choose what fits your household, and find where to watch.",
+    "Remember what you watched. Find what comes next. A fast personal watch list for movies and TV — search, mark Watched or Want to Watch, and keep going.",
 };
 
 export default function Page() {
-  return (
-    <>
-      <Homepage />
-    </>
-  );
+  return <Homepage />;
 }

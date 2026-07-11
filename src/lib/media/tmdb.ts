@@ -1,11 +1,10 @@
 // TMDB metadata adapter (SERVER ONLY). Replaceable: the UI never imports this
 // directly — it goes through the normalized model + API routes.
 //
-// Commercial note: a standard TMDB developer key does NOT clear a revenue
-// product. See docs/data-licensing-and-attribution.md. Provider results are
-// JustWatch data surfaced by TMDB and require JustWatch attribution.
-import { ALL_CATEGORIES } from "../filter/types";
-import { notReviewedGuidance } from "../guidance";
+// Licensing: free with attribution while WatchedNotWatched is non-commercial
+// (free, no ads, no revenue). Charging money requires TMDB's commercial
+// license (~$149/mo) FIRST. Provider results are JustWatch data surfaced by
+// TMDB and require JustWatch attribution.
 import type {
   AttributionReference,
   MediaMetadataAdapter,
@@ -15,6 +14,7 @@ import type {
   SearchOptions,
   SearchResult,
   SearchResultItem,
+  TrailerReference,
 } from "./types";
 
 const BASE = "https://api.themoviedb.org/3";
@@ -166,10 +166,9 @@ export function createTmdbAdapter(): MediaMetadataAdapter {
       runtimeMinutes: (d.runtime as number) ?? (Array.isArray(d.episode_run_time) ? (d.episode_run_time as number[])[0] : undefined),
       genres: Array.isArray(d.genres) ? (d.genres as Array<{ name: string }>).map((g) => g.name).filter(Boolean) : undefined,
       officialRating,
-      // Honest: TMDB gives an official rating, NOT per-category WNW guidance.
-      guidance: notReviewedGuidance([...ALL_CATEGORIES]),
       availability,
       watchOptionsUrl,
+      trailer: extractTrailer(d),
       attribution,
       dataStatus: "live",
       updatedAt: new Date().toISOString(),
@@ -184,7 +183,61 @@ export function createTmdbAdapter(): MediaMetadataAdapter {
     return extractProviders({ "watch/providers": { results: d.results } }, r).availability;
   }
 
-  return { id: "tmdb", searchTitles, getTitle, getProviders };
+  /** Similar + recommended titles, deduped, recommendations first. */
+  async function getSimilar(sourceId: string, mediaType: MediaType): Promise<SearchResultItem[]> {
+    const isTv = mediaType === "series" || mediaType === "episode";
+    const base = isTv ? `/tv/${sourceId}` : `/movie/${sourceId}`;
+    const [rec, sim] = await Promise.all([
+      tmdbFetch<TmdbListResponse>(`${base}/recommendations`, { language: "en-US", page: "1" }),
+      tmdbFetch<TmdbListResponse>(`${base}/similar`, { language: "en-US", page: "1" }),
+    ]);
+    const seen = new Set<string>([sourceId]);
+    const items: SearchResultItem[] = [];
+    for (const r of [...(rec?.results ?? []), ...(sim?.results ?? [])]) {
+      const id = String(r.id);
+      const title = (r.title ?? r.name ?? "").trim();
+      if (!title || seen.has(id)) continue;
+      seen.add(id);
+      items.push({
+        id: `tmdb:${id}`,
+        source: "tmdb",
+        sourceId: id,
+        mediaType: r.first_air_date || r.name ? "series" : "movie",
+        title,
+        releaseYear: yearOf(r.release_date ?? r.first_air_date),
+        posterUrl: img(r.poster_path, "w342"),
+        dataStatus: "live" as const,
+      });
+      if (items.length >= 12) break;
+    }
+    return items;
+  }
+
+  return { id: "tmdb", searchTitles, getTitle, getProviders, getSimilar };
+}
+
+interface TmdbListResponse {
+  results?: Array<{
+    id: number;
+    title?: string;
+    name?: string;
+    release_date?: string;
+    first_air_date?: string;
+    poster_path?: string | null;
+  }>;
+}
+
+/** Best trailer from the videos append: official YouTube trailer preferred. */
+function extractTrailer(d: Record<string, unknown>): TrailerReference | undefined {
+  const vids = ((d.videos as { results?: Array<{ key?: string; site?: string; type?: string; name?: string; official?: boolean }> })?.results ?? [])
+    .filter((v) => v.key && v.site === "YouTube" && v.type === "Trailer");
+  if (vids.length === 0) return undefined;
+  const chosen = vids.find((v) => v.official) ?? vids[0];
+  return {
+    youtubeId: chosen.key!,
+    title: chosen.name ?? "Trailer",
+    official: chosen.official === true,
+  };
 }
 
 function extractRating(d: Record<string, unknown>, isTv: boolean, region: string): string | undefined {

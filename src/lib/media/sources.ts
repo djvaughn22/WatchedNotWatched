@@ -61,17 +61,33 @@ export const MEDIA_SOURCES: Record<string, MediaSource> = {
     },
   },
 
-  // Rejected sources
   tmdb: {
     id: "tmdb",
     name: "The Movie Database (TMDB)",
-    license: "Proprietary",
-    commercial: "rejected",
+    license: "Free with attribution while non-commercial",
+    // "restricted" = fine while the app is free with attribution; charging
+    // money requires TMDB's commercial license (~$149/mo) FIRST.
+    commercial: "restricted",
     attribution: {
-      required: false,
-      text: "TMDB: restricted for commercial products without agreement.",
+      required: true,
+      text: "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+      url: "https://www.themoviedb.org/",
     },
   },
+
+  justwatch: {
+    id: "justwatch",
+    name: "JustWatch",
+    license: "Via TMDB watch-providers endpoint",
+    commercial: "restricted",
+    attribution: {
+      required: true,
+      text: "Streaming availability data provided by JustWatch.",
+      url: "https://www.justwatch.com/",
+    },
+  },
+
+  // Rejected sources
 
   cinemeta: {
     id: "cinemeta",
@@ -103,17 +119,6 @@ export const MEDIA_SOURCES: Record<string, MediaSource> = {
     attribution: {
       required: false,
       text: "OMDb: restricted for commercial products.",
-    },
-  },
-
-  justwatch: {
-    id: "justwatch",
-    name: "JustWatch",
-    license: "Proprietary",
-    commercial: "rejected",
-    attribution: {
-      required: false,
-      text: "JustWatch: restricted without direct partnership.",
     },
   },
 

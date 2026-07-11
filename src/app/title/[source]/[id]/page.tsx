@@ -14,12 +14,9 @@ export default async function TitlePage({
 }) {
   const { source, id } = await params;
   const { mediaType } = await searchParams;
-  // "Add to review" is an internal editorial tool — same gate as the Filter Studio.
-  const editorialEnabled =
-    process.env.FEATURE_FILTER_STUDIO === "true" || process.env.NODE_ENV !== "production";
   return (
     <main className="min-h-screen bg-[#0b1220]">
-      <TitleDetailClient source={source} id={id} mediaType={mediaType || "movie"} editorialEnabled={editorialEnabled} />
+      <TitleDetailClient source={source} id={id} mediaType={mediaType || "movie"} />
     </main>
   );
 }
