@@ -4,6 +4,7 @@ import "./globals.css";
 import OpenMirrorFooter from "./OpenMirrorFooter";
 import OpenMirrorNav from "./OpenMirrorNav";
 import ProductNav from "./components/ProductNav";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,16 @@ export default function RootLayout({
         <ProductNav />
         {children}
         <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="Remember what you watched." accent="#22D3EE" />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-KCQDDZQ17M"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-KCQDDZQ17M');`}
+        </Script>
       </body>
     </html>
   );
