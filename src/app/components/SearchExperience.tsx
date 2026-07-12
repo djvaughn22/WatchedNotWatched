@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SearchResult, SearchResultItem } from "@/lib/media/types";
 import { useLibrary } from "@/lib/useLocal";
+import { track } from "@/lib/analytics";
 import type { LibraryStatus, TitleRef } from "@/lib/library";
 import TitleCard from "./TitleCard";
 
@@ -48,6 +49,7 @@ export default function SearchExperience({
   const [recent, setRecent] = useState<string[]>([]);
   const [tally, setTally] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const searchTrackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
 
@@ -72,6 +74,13 @@ export default function SearchExperience({
       .then((data) => {
         setItems(data.items ?? []);
         setStatus("done");
+        // Report the search once typing settles, so GA sees "interstellar"
+        // instead of every debounce step along the way.
+        if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
+        searchTrackTimer.current = setTimeout(
+          () => track("search", { search_term: q, results: (data.items ?? []).length }),
+          1500,
+        );
       })
       .catch((e) => {
         if (e?.name === "AbortError") return;

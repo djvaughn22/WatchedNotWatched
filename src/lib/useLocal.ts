@@ -21,6 +21,7 @@ import {
   type MyTake,
   type TitleRef,
 } from "./library";
+import { track } from "./analytics";
 
 function readJson(key: string): unknown {
   try {
@@ -76,18 +77,37 @@ export function useLibrary() {
   }, []);
 
   const mark = useCallback(
-    (ref: TitleRef, status: LibraryStatus) => apply((prev) => setStatus(prev, ref, status)),
+    (ref: TitleRef, status: LibraryStatus) => {
+      track("title_marked", {
+        status,
+        content_title: ref.title,
+        media_type: ref.mediaType,
+      });
+      apply((prev) => setStatus(prev, ref, status));
+    },
     [apply],
   );
 
   const take = useCallback(
-    (id: string, myTake: MyTake | undefined) => apply((prev) => setMyTake(prev, id, myTake)),
-    [apply],
+    (id: string, myTake: MyTake | undefined) => {
+      if (myTake) {
+        const entry = store.entries.find((e) => e.id === id);
+        track("title_rated", { rating: myTake, content_title: entry?.title });
+      }
+      apply((prev) => setMyTake(prev, id, myTake));
+    },
+    [apply, store],
   );
 
   const again = useCallback(
-    (id: string, value: Again | undefined) => apply((prev) => setAgain(prev, id, value)),
-    [apply],
+    (id: string, value: Again | undefined) => {
+      if (value) {
+        const entry = store.entries.find((e) => e.id === id);
+        track("title_again", { again: value, content_title: entry?.title });
+      }
+      apply((prev) => setAgain(prev, id, value));
+    },
+    [apply, store],
   );
 
   const remove = useCallback((id: string) => apply((prev) => removeEntry(prev, id)), [apply]);
