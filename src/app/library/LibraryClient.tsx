@@ -19,6 +19,7 @@ import {
 } from "@/lib/library";
 import { useLibrary } from "@/lib/useLocal";
 import { emailSummaryUrl, exportCsv, exportJson, exportMarkdown, shareSummary } from "@/lib/export";
+import { downloadLibraryImage, type ShareImageSize } from "@/lib/shareImage";
 
 const VIEWS: LibraryView[] = ["all", "want_to_watch", "watched", "watch_again", "favorites", "not_for_me", "prob_not"];
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
@@ -151,6 +152,12 @@ export default function LibraryClient() {
     setTimeout(() => setShareMsg(""), 2000);
   };
 
+  const doImage = async (size: ShareImageSize) => {
+    const result = await downloadLibraryImage(entries, size);
+    setShareMsg(result === "saved" ? "Image saved · summary copied" : "Couldn’t make the image");
+    setTimeout(() => setShareMsg(""), 2600);
+  };
+
   if (!hydrated) {
     return <div className="h-40 animate-pulse rounded-2xl bg-[#141d2e]" />;
   }
@@ -252,6 +259,8 @@ export default function LibraryClient() {
         <button onClick={() => exportMarkdown(entries)} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">Markdown</button>
         <button onClick={doShare} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">{shareMsg || "Share"}</button>
         <a href={emailSummaryUrl(entries)} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">Email a summary</a>
+        <button onClick={() => doImage("square")} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">Square image</button>
+        <button onClick={() => doImage("portrait")} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">Portrait image</button>
       </div>
       <p className="mt-2 text-xs text-[#64748b]">Saved on this device. Export a backup anytime.</p>
 
