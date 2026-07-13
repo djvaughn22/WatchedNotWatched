@@ -313,8 +313,8 @@ export default function LibraryClient() {
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${e.status === "watched" ? "border-[#22D3EE] text-[#22D3EE]" : e.status === "want_to_watch" ? "border-[#60A5FA] text-[#60A5FA]" : "border-[#64748B] text-[#94a3b8]"}`}>
                     {STATUS_LABELS[e.status]}
                   </span>
-                  {e.myTake && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">{MY_TAKE_LABELS[e.myTake]}</span>}
-                  {e.again && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">Again: {AGAIN_LABELS[e.again]}</span>}
+                  {selecting && e.myTake && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">{MY_TAKE_LABELS[e.myTake]}</span>}
+                  {selecting && e.again && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">Again: {AGAIN_LABELS[e.again]}</span>}
                 </div>
                 {!selecting && (
                   <div className="mt-auto flex flex-wrap gap-2 pt-2">
@@ -327,16 +327,27 @@ export default function LibraryClient() {
                         Move to Want to Watch
                       </button>
                     )}
-                    {e.status === "watched" && !e.myTake && (
-                      <select
-                        value=""
-                        onChange={(ev) => ev.target.value && take(e.id, ev.target.value as MyTake)}
-                        aria-label={`My Take for ${e.title}`}
-                        className="rounded-full border border-[#26324c] bg-[#141d2e] px-2 py-1 text-xs text-[#94a3b8]"
-                      >
-                        <option value="">My Take…</option>
-                        {TAKES.map((t) => <option key={t} value={t}>{MY_TAKE_LABELS[t]}</option>)}
-                      </select>
+                    {e.status === "watched" && (
+                      <>
+                        <select
+                          value={e.myTake ?? ""}
+                          onChange={(ev) => take(e.id, (ev.target.value || undefined) as MyTake | undefined)}
+                          aria-label={`My Take for ${e.title}`}
+                          className={`rounded-full border bg-[#141d2e] px-2 py-1 text-xs ${e.myTake ? "border-[#22D3EE]/60 text-[#e8edf5]" : "border-[#26324c] text-[#94a3b8]"}`}
+                        >
+                          <option value="">My Take…</option>
+                          {TAKES.map((t) => <option key={t} value={t}>{MY_TAKE_LABELS[t]}</option>)}
+                        </select>
+                        <select
+                          value={e.again ?? ""}
+                          onChange={(ev) => again(e.id, (ev.target.value || undefined) as Again | undefined)}
+                          aria-label={`Watch again for ${e.title}`}
+                          className={`rounded-full border bg-[#141d2e] px-2 py-1 text-xs ${e.again ? "border-[#22D3EE]/60 text-[#e8edf5]" : "border-[#26324c] text-[#94a3b8]"}`}
+                        >
+                          <option value="">Watch again?</option>
+                          {AGAINS.map((a) => <option key={a} value={a}>Again: {AGAIN_LABELS[a]}</option>)}
+                        </select>
+                      </>
                     )}
                     <button onClick={() => removeOne(e)} className="rounded-full border border-[#26324c] px-3 py-1.5 text-xs font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
                       Remove
