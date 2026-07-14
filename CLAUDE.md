@@ -2,7 +2,7 @@
 
 # WatchedNotWatched (watchednotwatched.com)
 Personal watch list for movies and TV: search, mark Watched or Want to Watch, add your take, keep going. Local-first, no accounts. Secular. Accent: **#22D3EE**.
-- Site name renders as WatchedNotWatched + cyan ".com" everywhere.
+- Wordmark renders as Watched + cyan "✓" + NotWatched + cyan ".com" (the ✓ is the brand mark). Shared OpenMirror chrome keeps the plain "WatchedNotWatched.com" string.
 
 ## Open Mirror family rules
 - One of 11 Open Mirror LLC sites (hub: openmirrorllc.com, repo djvaughn22/open-mirror). Baseline tag: `mvp-1`.

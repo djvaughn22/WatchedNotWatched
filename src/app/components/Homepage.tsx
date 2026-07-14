@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchExperience from "./SearchExperience";
+import TitleCard from "./TitleCard";
 import { useLibrary } from "@/lib/useLocal";
 import { inView, VIEW_LABELS, type LibraryView } from "@/lib/library";
 import { DECADES } from "@/lib/media/genres";
@@ -29,7 +30,8 @@ function SectionHeader({ title, link, linkLabel }: { title: string; link?: strin
 }
 
 export function Homepage() {
-  const { entries, hydrated } = useLibrary();
+  const lib = useLibrary();
+  const { entries, hydrated } = lib;
 
   return (
     <main className="min-h-screen bg-[#0b1220] text-[#e8edf5]">
@@ -37,15 +39,29 @@ export function Homepage() {
           screen, so the page reads as a single card instead of dark bands. */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <section className="pb-8 pt-10 text-center">
-          <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-5xl">
-            Remember what you watched.
+          {/* The brand, as the two answers the whole site runs on. */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="rounded-full border border-[#22D3EE] bg-[#22D3EE]/10 px-3 py-1 text-xs font-black text-[#22D3EE]">
+              Watched ✓
+            </span>
+            <span className="rounded-full border border-[#26324c] px-3 py-1 text-xs font-black text-[#94a3b8]">
+              Not watched
+            </span>
+          </div>
+          <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-5xl">
+            What to watch next,
             <br />
-            Find what comes next.
+            based on what you like.
           </h1>
+          <p className="mt-3 text-sm text-[#94a3b8]">
+            Rate what you&apos;ve seen. The picks below change with every rating.
+          </p>
           <div className="mt-6 text-left">
             <SearchExperience autoFocus />
           </div>
         </section>
+
+        <HomePicks lib={lib} />
 
         <section className="border-t border-[#26324c] py-6">
           <SectionHeader title="How many have you seen?" link="/top" linkLabel="Open the board →" />
@@ -97,6 +113,173 @@ export function Homepage() {
         </p>
       </div>
     </main>
+  );
+}
+
+// ---- The picks deck --------------------------------------------------------
+// The homepage engine: a hand of titles you haven't decided on yet. With no
+// ratings it deals from the Top 222 boards; once you thumb titles up it deals
+// from /api/recommend seeded by your 👍s (same engine as For You). Any rating
+// — Loved / Liked / Fine / Not for me — or a Prob Not re-deals the hand, so
+// the picks visibly react to every opinion. Shuffle re-deals on demand.
+
+type Pick = SearchResultItem & { because?: string };
+
+const HAND_SIZE = 8;
+const MAX_SEEDS = 8;
+
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Alternate movies and shows so a mixed hand never leans all one way. */
+function interleave(a: Pick[], b: Pick[]): Pick[] {
+  const out: Pick[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if (a[i]) out.push(a[i]);
+    if (b[i]) out.push(b[i]);
+  }
+  return out;
+}
+
+function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
+  const { entries, hydrated, entryFor, mark, take, again, remove } = lib;
+  const [pool, setPool] = useState<Pick[]>([]);
+  const [personal, setPersonal] = useState(false);
+  const [hand, setHand] = useState<Pick[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Same seed rule as For You: loved (3) beats liked (2), newest first.
+  const seeds = useMemo(() => {
+    const liked = entries.filter((e) => e.myTake === "loved" || e.myTake === "liked");
+    liked.sort((a, b) => (a.myTake === b.myTake ? 0 : a.myTake === "loved" ? -1 : 1));
+    return liked
+      .slice(0, MAX_SEEDS)
+      .map((e) => ({ sourceId: e.sourceId, mediaType: e.mediaType, weight: e.myTake === "loved" ? 3 : 2, title: e.title }));
+  }, [entries]);
+
+  // Every opinion re-deals: any My Take change or a Prob Not, but not a plain
+  // Watched / Want to Watch tap — those keep the card in place so you can
+  // finish rating it.
+  const opinionKey = useMemo(
+    () =>
+      entries
+        .filter((e) => e.myTake || e.status === "prob_not")
+        .map((e) => `${e.id}:${e.myTake ?? "prob_not"}`)
+        .sort()
+        .join("|"),
+    [entries],
+  );
+
+  // Anything already in the library never gets dealt again.
+  const deal = (from: Pick[]) => {
+    const inLibrary = new Set(entries.map((e) => e.id));
+    setHand(shuffled(from.filter((p) => !inLibrary.has(p.id))).slice(0, HAND_SIZE));
+  };
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const controller = new AbortController();
+    // `loading` gates only the first skeleton; re-deals keep the old hand up
+    // until the new one lands, so it never flips back to true.
+    const finish = (items: Pick[], isPersonal: boolean) => {
+      setPool(items);
+      setPersonal(isPersonal);
+      deal(items);
+      setLoading(false);
+    };
+
+    const loadTop = () => {
+      const one = (type: "movie" | "series") =>
+        fetch(`/api/top?type=${type}`, { signal: controller.signal })
+          .then((r) => r.json())
+          .then((data: { items?: Pick[] }) => data.items ?? []);
+      Promise.all([one("movie"), one("series")])
+        .then(([movies, shows]) => finish(interleave(movies, shows), false))
+        .catch(() => setLoading(false));
+    };
+
+    if (seeds.length === 0) {
+      loadTop();
+    } else {
+      fetch("/api/recommend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          seeds: seeds.map(({ sourceId, mediaType, weight }) => ({ sourceId, mediaType, weight })),
+          seedTitles: Object.fromEntries(seeds.map((s) => [s.sourceId, s.title])),
+        }),
+        signal: controller.signal,
+      })
+        .then((r) => r.json())
+        .then((data: { items?: Pick[] }) => {
+          if (data.items && data.items.length > 0) finish(data.items, true);
+          else loadTop();
+        })
+        .catch((e) => {
+          if (e?.name !== "AbortError") loadTop();
+        });
+    }
+    return () => controller.abort();
+    // Re-deal only when an opinion changes, not on every library tap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, opinionKey]);
+
+  if (!hydrated) return null;
+  if (!loading && pool.length === 0) return null; // keyless prod: stay clean
+
+  return (
+    <section className="border-t border-[#26324c] py-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-xs font-black uppercase tracking-widest text-[#94a3b8]">
+          {personal ? "Your picks" : "Picks to start with"}
+        </h2>
+        <div className="flex items-center gap-2">
+          {personal && (
+            <Link href="/foryou" className="shrink-0 text-xs font-semibold text-[#22D3EE] hover:underline">
+              More →
+            </Link>
+          )}
+          <button onClick={() => deal(pool)} className={CHIP_ACCENT}>
+            Shuffle ↻
+          </button>
+        </div>
+      </div>
+      <p className="mt-1 text-xs text-[#64748b]">
+        {personal
+          ? "Built from your 👍s. Rate anything and the deck changes."
+          : "From the Top 222 boards. Rate a few and your picks go personal."}
+      </p>
+
+      {loading && hand.length === 0 ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: HAND_SIZE }, (_, i) => (
+            <div key={i} className="aspect-[2/3] animate-pulse rounded-xl border border-[#26324c] bg-[#141d2e]" />
+          ))}
+        </div>
+      ) : (
+        <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {hand.map((p) => (
+            <li key={p.id} className="flex flex-col gap-1">
+              <TitleCard
+                item={p}
+                entry={entryFor(p.id)}
+                onMark={mark}
+                onClear={remove}
+                onTake={take}
+                onAgain={again}
+              />
+              {p.because && <p className="px-1 text-[10px] text-[#64748b]">Because you liked {p.because}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

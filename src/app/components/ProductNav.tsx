@@ -25,7 +25,7 @@ export default function ProductNav() {
           href="/"
           className="mr-2 shrink-0 text-sm font-black tracking-tight text-[#e8edf5]"
         >
-          WatchedNotWatched<span className="text-[#22D3EE]">.com</span>
+          Watched<span className="text-[#22D3EE]">✓</span>NotWatched<span className="text-[#22D3EE]">.com</span>
         </Link>
         <div className="flex items-center gap-1">
           {LINKS.slice(1).map((l) => (

@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WatchedNotWatched — Remember what you watched.",
+  title: "WatchedNotWatched — What to watch next, based on what you like.",
   description:
-    "Remember what you watched. Find what comes next. A fast personal watch list for movies and TV — search, mark Watched or Want to Watch, and keep going.",
+    "Mark titles Watched ✓ or not, rate what you liked, and your picks change with every rating. A fast personal watch list for movies and TV — no account, saved on your device.",
 };
 
 export default function RootLayout({
@@ -33,7 +33,7 @@ export default function RootLayout({
         <OpenMirrorNav site="WatchedNotWatched.com" />
         <ProductNav />
         {children}
-        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="Remember what you watched." accent="#22D3EE" />
+        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="What to watch next, based on what you like." accent="#22D3EE" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-KCQDDZQ17M"
           strategy="afterInteractive"
