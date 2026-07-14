@@ -20,10 +20,12 @@ export default function ProductNav() {
       aria-label="WatchedNotWatched"
       className="sticky top-0 z-40 border-b border-[#26324c] bg-[#0b1220]/95 backdrop-blur"
     >
-      <div className="mx-auto flex max-w-5xl items-center gap-1 overflow-x-auto px-3 py-2 sm:px-5">
+      {/* Same 680px centered container as the Open Mirror bar above, so the
+          wordmark lines up under "Open Mirror LLC" and the links under Menu. */}
+      <div className="mx-auto flex max-w-[680px] items-center justify-between gap-3 overflow-x-auto px-4 py-2 sm:px-5">
         <Link
           href="/"
-          className="mr-2 shrink-0 text-sm font-black tracking-tight text-[#e8edf5]"
+          className="shrink-0 text-sm font-black tracking-tight text-[#e8edf5]"
         >
           Watched<span className="text-[#22D3EE]">✓</span>NotWatched<span className="text-[#22D3EE]">.com</span>
         </Link>
