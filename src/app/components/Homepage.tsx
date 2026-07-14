@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import EmailSignup from "./EmailSignup";
 import SearchExperience from "./SearchExperience";
 import TitleCard from "./TitleCard";
 import { useLibrary } from "@/lib/useLocal";
@@ -107,6 +108,8 @@ export function Homepage() {
         )}
 
         <Top22Today />
+
+        <EmailSignup />
 
         <p className="border-t border-[#26324c] py-6 text-center text-xs leading-relaxed text-[#64748b]">
           Saved on this device. Export a backup anytime. No account needed.
