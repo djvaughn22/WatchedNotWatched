@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://watchednotwatched.com"),
   title: "WatchedNotWatched — What to watch next, based on what you like.",
   description:
     "Mark titles Watched ✓ or not, rate what you liked, and your picks change with every rating. A fast personal watch list for movies and TV — no account, saved on your device.",
@@ -28,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html suppressHydrationWarning lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <OpenMirrorNav site="WatchedNotWatched.com" />
         <ProductNav />

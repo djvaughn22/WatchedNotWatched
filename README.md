@@ -1,36 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WatchedNotWatched (watchednotwatched.com)
 
-## Getting Started
+What to watch next, based on what you like. Rate titles Watched✓/NotWatched, get a re-dealt deck of picks, browse the Top 22/222 board. Free; personal media product.
 
-First, run the development server:
+## Repo map
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Production:** https://watchednotwatched.com — branch `main`, auto-deploys on push (Vercel).
+- **Framework:** Next.js 16.2.9 (App Router). Build: `npm run build`. Tests: `npm test`.
+- **Routes:** `/`, `/about`, `/foryou`, `/top`, `/library`, `/saved`, `/search`, `/legal`, plus `/api/recommend` and `/api/subscribe`.
+- **Family chrome:** `src/app/OpenMirrorNav.tsx` / `OpenMirrorFooter.tsx` / `OpenMirrorTheme.tsx` are synced copies — canonical source is the hub repo `packages/openmirror-ui/` + `scripts/sync-ui.sh`. Never edit the local copies.
+- **Theme:** family ☀️/🌙 toggle; `om-theme` localStorage key.
+- **Persistence (localStorage):** `wnw.status.v1`, `wnw.saved.v1`, `wnw.recent.v1`, `wnw.library.v2`, `wnw.email.v1`, `wnw.tally.v1`.
+- **Env vars (names only):** `TMDB_API_KEY`, `TMDB_ACCESS_TOKEN`, `DEFAULT_WATCH_REGION`, `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `YOUTUBE_API_KEY`.
+- **External services:** TMDB (ratings/metadata; commercial license required before charging money), Resend (email list — hidden until keys are set in Vercel), GA4.
+- **Protected:** the focused MVP direction. No family-filter promises, no streaming/playback claims, no provider-coverage claims beyond what the code really does.
+- **Make changes in:** `src/app/page.tsx` (home deck), `src/lib/` (ranking).
