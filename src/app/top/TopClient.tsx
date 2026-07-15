@@ -62,6 +62,7 @@ export default function TopClient() {
   useEffect(() => {
     if (!urlApplied) return;
     const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch effect: show the loading state for the request this effect starts
     setStatus("loading");
     const q = new URLSearchParams({ type: kind });
     if (decade) q.set("decade", decade);
