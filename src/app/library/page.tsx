@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import LibraryClient from "./LibraryClient";
 
-export const metadata: Metadata = { title: "My library — WatchedNotWatched" };
+export const metadata: Metadata = { title: "My library" };
 
 export default function LibraryPage() {
   return (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import TopClient from "./TopClient";
 
 export const metadata: Metadata = {
-  title: "Top 222 — WatchedNotWatched",
+  title: "Top 222",
   description:
     "The top 222 movies and shows of all time, of every decade, and of every genre — ranked by ratings. Mark what you've watched and what's next.",
 };

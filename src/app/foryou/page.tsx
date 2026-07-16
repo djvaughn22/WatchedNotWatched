@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ForYouClient from "./ForYouClient";
 
 export const metadata: Metadata = {
-  title: "For You — WatchedNotWatched",
+  title: "For You",
   description: "Picks based on the titles you thumbed up. Your list stays on your device.",
 };
 

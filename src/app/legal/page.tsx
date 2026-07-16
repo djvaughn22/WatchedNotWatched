@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Legal — WatchedNotWatched" };
+export const metadata: Metadata = { title: "Legal" };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

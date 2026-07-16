@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import TitleDetailClient from "./TitleDetailClient";
 
 export const metadata: Metadata = {
-  title: "Title details — WatchedNotWatched",
+  title: "Title details",
 };
 
 export default async function TitlePage({

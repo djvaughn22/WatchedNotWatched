@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import SearchExperience from "../components/SearchExperience";
 
 export const metadata: Metadata = {
-  title: "Search — WatchedNotWatched",
+  title: "Search",
   description: "Search a movie or show, mark it Watched or Want to Watch, and keep going.",
 };
 
