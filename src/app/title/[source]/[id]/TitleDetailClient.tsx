@@ -13,9 +13,6 @@ import {
 } from "@/lib/library";
 import TitleCard from "@/app/components/TitleCard";
 import TriageButtons from "@/app/components/TriageButtons";
-import DecisionCard from "@/app/components/DecisionCard";
-import { wasGuidanceSeen } from "@/lib/guidanceClient";
-import { track } from "@/lib/analytics";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -95,15 +92,6 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
     genres: title.genres,
   };
 
-  // The key business measurement: does seeing guidance lead to a decision?
-  // Fires only when this title's decision card was completed in this session.
-  const markAfterGuidance: typeof mark = (r, status) => {
-    if (wasGuidanceSeen(title.id)) {
-      track("title_marked_after_guidance", { status, content_title: title.title, media_type: title.mediaType });
-    }
-    mark(r, status);
-  };
-
   const trailer = title.trailer ?? fallbackTrailer?.trailer ?? null;
   const trailerSearchUrl =
     fallbackTrailer?.searchUrl ??
@@ -147,7 +135,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <TriageButtons titleRef={ref} entry={entry} onMark={markAfterGuidance} onClear={remove} size="lg" />
+            <TriageButtons titleRef={ref} entry={entry} onMark={mark} onClear={remove} size="lg" />
             <button onClick={share} className="rounded-lg border border-[#26324c] px-4 py-2.5 text-sm font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
               {shareMsg || "Share"}
             </button>
@@ -190,9 +178,6 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
       {title.synopsis && (
         <p className="mt-6 text-sm leading-relaxed text-[#94a3b8]">{title.synopsis}</p>
       )}
-
-      {/* Do I Want to Watch This? — the decision card */}
-      <DecisionCard source={source} id={id} title={title} />
 
       {/* Where to watch */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
