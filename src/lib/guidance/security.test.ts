@@ -48,4 +48,58 @@ describe("AI route security", () => {
     expect(route).toBeDefined();
     expect(route!.text).not.toMatch(/ViewingPrefs|prefs/i);
   });
+
+  it("the provider is only reachable through the server route and service", () => {
+    for (const f of files) {
+      if (/provider\.ts$|route\.ts$|service\.ts$/.test(f.path)) continue;
+      expect(f.text, f.path).not.toMatch(/guidance\/provider/);
+    }
+  });
+});
+
+describe("entitlement centralization", () => {
+  it("WNW_GUIDANCE_* env is read only by the config module", () => {
+    for (const f of files) {
+      if (f.path.endsWith("config.ts")) continue;
+      // Reads (env.WNW_GUIDANCE_...) are banned outside config.ts; comments
+      // that merely name the variable are fine.
+      expect(f.text, f.path).not.toMatch(/env\.WNW_GUIDANCE_/);
+    }
+  });
+
+  it("no beta or plan checks scattered into client components", () => {
+    for (const f of clientFiles) {
+      expect(f.text, f.path).not.toMatch(/guide_beta|guide_paid|cloud_paid|betaEnabled|killSwitch/);
+    }
+  });
+
+  it("the route cannot take a plan or beta grant from request data", () => {
+    const route = files.find((f) => f.path.includes(join("api", "guidance")))!;
+    // Plan comes from resolvePlan(config) only; nothing read off the request
+    // mentions entitlement concepts.
+    expect(route.text).toMatch(/resolvePlan\(\{ betaEnabled: config\.betaEnabled \}\)/);
+    for (const m of route.text.matchAll(/searchParams\.get\("([^"]+)"\)/g)) {
+      expect(["source", "id", "mediaType"], `request param ${m[1]}`).toContain(m[1]);
+    }
+    expect(route.text).not.toMatch(/req\.headers|req\.cookies|cookies\(\)/);
+  });
+
+  it("free local features do not depend on guidance modules", () => {
+    for (const f of files) {
+      if (/\/(library|useLocal|export)\.ts$/.test(f.path)) {
+        expect(f.text, f.path).not.toMatch(/guidance|entitlements/);
+      }
+    }
+  });
+});
+
+describe("analytics privacy", () => {
+  it("no track() call includes AI response text or sensitive preference details", () => {
+    const banned = /quickTake|deepDive|bestFit|guidance\.|viewerAges|sensitivities|kidsWatching|occasion/;
+    for (const f of files) {
+      for (const call of f.text.matchAll(/track\(([^;]*?)\);/g)) {
+        expect(call[1], `${f.path}: track(${call[1]})`).not.toMatch(banned);
+      }
+    }
+  });
 });

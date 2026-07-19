@@ -171,7 +171,10 @@ export type GuidanceStatus =
   | "unconfigured" // no AI provider key on the server
   | "rate_limited"
   | "no_metadata" // couldn't load enough title metadata
-  | "error"; // provider/network/malformed-response failure
+  | "error" // provider/network/malformed-response failure
+  | "disabled" // owner kill switch — AI generation stopped
+  | "entitlement_required" // plan doesn't include guidance (beta ended)
+  | "limit_reached"; // server-side beta cost controls tripped
 
 export interface GuidanceResponse {
   status: GuidanceStatus;

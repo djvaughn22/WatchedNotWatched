@@ -19,9 +19,18 @@ import { personalize } from "@/lib/guidance/personalize";
 import { usePrefs } from "@/lib/usePrefs";
 import { hasAnyPrefs } from "@/lib/prefs";
 import { track } from "@/lib/analytics";
+import {
+  DEVICE_DAILY_LIMIT,
+  markGuidanceSeen,
+  readDeviceUsage,
+  recordDeviceRequest,
+  underDeviceLimit,
+} from "@/lib/guidanceClient";
 import PreferencesEditor from "./PreferencesEditor";
 
-type Phase = "idle" | "loading" | GuidanceResponse["status"];
+// "device_limit" is the client-side per-device beta cap; the rest come from
+// the server's typed response.
+type Phase = "idle" | "loading" | "device_limit" | GuidanceResponse["status"];
 
 function levelBadgeClass(level: GuidanceLevel): string {
   switch (level) {
@@ -49,7 +58,27 @@ const ERROR_COPY: Partial<Record<Phase, { message: string; retry: boolean }>> = 
     message: "Spoiler-free guidance isn’t switched on yet for this site. Check back soon.",
     retry: false,
   },
+  disabled: {
+    message: "Guidance is switched off right now. Everything else here works normally.",
+    retry: false,
+  },
+  entitlement_required: {
+    message:
+      "The free test of this feature has ended. Do I Want to Watch This? will return as an optional paid upgrade — the rest of WatchedNotWatched stays free.",
+    retry: false,
+  },
+  limit_reached: {
+    message: "Today’s testing capacity for guidance is used up. Try again tomorrow.",
+    retry: false,
+  },
+  device_limit: {
+    message: `That’s today’s testing limit on this device (${DEVICE_DAILY_LIMIT} answers). Come back tomorrow.`,
+    retry: false,
+  },
 };
+
+// Server statuses where the visitor was blocked by access policy, not a fault.
+const BLOCKED_STATUSES: ReadonlySet<string> = new Set(["disabled", "entitlement_required"]);
 
 export default function DecisionCard({
   source,
@@ -64,6 +93,7 @@ export default function DecisionCard({
   const [guidance, setGuidance] = useState<TitleGuidance | null>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
+  const hadPrefsAtOpen = useRef(false);
   const { prefs, hydrated, setPrefs, reset } = usePrefs();
   const alive = useRef(true);
   useEffect(() => {
@@ -73,7 +103,19 @@ export default function DecisionCard({
     };
   }, []);
 
+  // One "the feature was on screen" event per title view.
+  useEffect(() => {
+    track("decision_card_viewed", { content_title: title.title, media_type: title.mediaType });
+  }, [title.title, title.mediaType]);
+
   const load = useCallback(async () => {
+    // Per-device beta cap (browser-only; the server keeps its own gates).
+    if (!underDeviceLimit(readDeviceUsage())) {
+      setPhase("device_limit");
+      track("beta_limit_reached", { scope: "device" });
+      return;
+    }
+    recordDeviceRequest();
     setPhase("loading");
     track("decision_card_requested", { content_title: title.title, media_type: title.mediaType });
     try {
@@ -85,13 +127,22 @@ export default function DecisionCard({
       if (data.status === "ok" && data.guidance) {
         setGuidance(data.guidance);
         setPhase("ok");
+        markGuidanceSeen(title.id);
+        track("decision_card_completed", { content_title: title.title, media_type: title.mediaType });
       } else {
-        setPhase(data.status && data.status !== "ok" ? data.status : "error");
+        const status = data.status && data.status !== "ok" ? data.status : "error";
+        setPhase(status);
+        if (BLOCKED_STATUSES.has(status)) track("entitlement_blocked", { status });
+        else if (status === "limit_reached") track("beta_limit_reached", { scope: "server" });
+        else track("decision_card_failed", { status });
       }
     } catch {
-      if (alive.current) setPhase("error");
+      if (alive.current) {
+        setPhase("error");
+        track("decision_card_failed", { status: "network" });
+      }
     }
-  }, [source, id, title.title, title.mediaType]);
+  }, [source, id, title.id, title.title, title.mediaType]);
 
   const verdict = useMemo(
     () => (guidance && hydrated ? personalize(guidance, prefs, { genres: title.genres }) : null),
@@ -111,7 +162,11 @@ export default function DecisionCard({
           >
             Do I Want to Watch This?
           </button>
-          <p className="mt-1.5 text-center text-xs text-[#64748b]">Get a personalized, spoiler-free answer.</p>
+          <p className="mt-1.5 text-center text-xs text-[#64748b]">
+            Get a personalized, spoiler-free answer.{" "}
+            <span className="font-bold text-[#22D3EE]">Free during testing</span> — this will become an optional paid
+            feature after testing.
+          </p>
         </div>
       )}
 
@@ -145,7 +200,12 @@ export default function DecisionCard({
       <div aria-live="polite">
         {phase === "ok" && guidance && (
           <div className="rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
-            <h2 className="text-base font-black text-[#e8edf5]">Do I Want to Watch This?</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-black text-[#e8edf5]">Do I Want to Watch This?</h2>
+              <span className="shrink-0 rounded-full border border-[#22D3EE]/50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#22D3EE]">
+                Free during testing
+              </span>
+            </div>
 
             {/* 1. Quick Take — always first */}
             <p className="mt-3 text-sm leading-relaxed text-[#e8edf5]">{guidance.quickTake}</p>
@@ -238,14 +298,26 @@ export default function DecisionCard({
           {!prefsOpen ? (
             <button
               type="button"
-              onClick={() => setPrefsOpen(true)}
+              onClick={() => {
+                hadPrefsAtOpen.current = hasAnyPrefs(prefs);
+                setPrefsOpen(true);
+              }}
               aria-expanded={false}
               className="w-full rounded-xl border border-[#26324c] px-4 py-2.5 text-sm font-semibold text-[#94a3b8] hover:text-[#e8edf5]"
             >
               {personalized ? "My viewing preferences ✓" : "Make this personal"}
             </button>
           ) : (
-            <PreferencesEditor prefs={prefs} setPrefs={setPrefs} onDone={() => setPrefsOpen(false)} onReset={reset} />
+            <PreferencesEditor
+              prefs={prefs}
+              setPrefs={setPrefs}
+              onDone={() => {
+                setPrefsOpen(false);
+                // First-time personalization only; never the preference values.
+                if (!hadPrefsAtOpen.current && hasAnyPrefs(prefs)) track("preferences_added");
+              }}
+              onReset={reset}
+            />
           )}
         </div>
       )}
