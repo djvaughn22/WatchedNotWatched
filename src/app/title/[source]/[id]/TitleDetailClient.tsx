@@ -13,6 +13,7 @@ import {
 } from "@/lib/library";
 import TitleCard from "@/app/components/TitleCard";
 import TriageButtons from "@/app/components/TriageButtons";
+import DecisionCard from "@/app/components/DecisionCard";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -178,6 +179,9 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
       {title.synopsis && (
         <p className="mt-6 text-sm leading-relaxed text-[#94a3b8]">{title.synopsis}</p>
       )}
+
+      {/* Do I Want to Watch This? — the decision card */}
+      <DecisionCard source={source} id={id} title={title} />
 
       {/* Where to watch */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
