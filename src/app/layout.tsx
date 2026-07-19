@@ -31,7 +31,18 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <OpenMirrorNav site="WatchedNotWatched.com" />
+        <OpenMirrorNav
+          site="WatchedNotWatched.com"
+          accent="#22D3EE"
+          links={[
+            { emoji: "🎬", name: "Home", href: "/" },
+            { emoji: "🔎", name: "Search", href: "/search" },
+            { emoji: "🏆", name: "Top 222", href: "/top" },
+            { emoji: "🍿", name: "For You", href: "/foryou" },
+            { emoji: "📚", name: "My Library", href: "/library" },
+            { emoji: "ℹ️", name: "About WatchedNotWatched", href: "/about" },
+          ]}
+        />
         <ProductNav />
         {children}
         <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="What to watch next, based on what you like." accent="#22D3EE" />
