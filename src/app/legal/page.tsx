@@ -22,6 +22,7 @@ export default function LegalPage() {
 
         <Section title="Content &amp; Availability Disclaimer">
           <p>Title information, posters, and trailers come from third-party sources and may be incomplete or out of date. Where-to-watch availability changes often and varies by region; a subscription or purchase may be required.</p>
+          <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
           <p>Third-party trademarks and titles belong to their owners. WatchedNotWatched is not endorsed by or affiliated with any streaming provider. External links open the provider’s own site or app and leave WatchedNotWatched.</p>
         </Section>
 
