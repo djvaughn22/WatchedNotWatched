@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AboutDestinationCard from "../components/AboutDestinationCard";
+import { BE_PREPARED_CARD } from "../../lib/destinations";
 
 export const metadata: Metadata = { title: "About" };
 
@@ -28,6 +30,11 @@ export default function AboutPage() {
         <p className="mt-2 rounded-2xl border border-[#26324c] bg-[#141d2e] p-4 text-[15px] leading-relaxed text-[#e8edf5]">
           No account. Your library is saved on this device. Export a backup anytime.
         </p>
+
+        {/* The one quiet destination card — after the site's own story. */}
+        <div className="mt-8">
+          <AboutDestinationCard card={BE_PREPARED_CARD} />
+        </div>
 
         <p className="mt-8 text-sm text-[#94a3b8]">
           See the <Link href="/legal" className="text-[#22D3EE] hover:underline">Privacy, Terms &amp; Disclaimer</Link>. Part of{" "}
