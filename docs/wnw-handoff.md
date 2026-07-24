@@ -76,3 +76,44 @@ payments build, 2) TMDB commercial license. Breakeven ≈150 subscribers.
    hub — never edit here.
 4. Next feature candidates: JSON import/restore, quick-rate mode for the
    watched pile, PWA install.
+
+## For You AI recommendations (added 2026-07-24)
+
+`/foryou` was rebuilt as "What should I watch next?" — four modes (Best
+Match / Something Different / Watch Together / Quick Watch), five cards max,
+cold-start starter screen, on-device feedback loop, preferences + privacy
+controls. Old `/api/recommend` (Homepage deck) is untouched.
+
+**Hybrid engine** (`src/lib/recommendations/` + `/api/recommendations`):
+retrieval from TMDB (seed graph + discover top-up) → hard filters (watched,
+dismissed, media type) → deterministic documented scoring → detail enrichment
+(genres/runtime/rating/providers) → content/runtime filters → optional AI
+layer. The AI (Claude via `@anthropic-ai/sdk`, server-only) only reranks and
+explains candidates it was handed by id; `validate.ts` rejects any invented
+id, duplicate, missing guide field, or spoiler tell, and malformed responses
+fall back to the deterministic template cards. Match labels come from score
+thresholds documented in `rank.ts` — no fake percentages.
+
+**Cost model (fails closed).** With no env vars set, the AI layer is OFF and
+the page is deterministic-only ($0 — TMDB attribution only). Gates in order:
+`AI_RECOMMENDATIONS_ENABLED` + `ANTHROPIC_API_KEY` → entitlement
+(`AI_RECOMMENDATIONS_TEST_MODE=true` is the temporary testing plan; there is
+no billing, so with `AI_RECOMMENDATIONS_REQUIRE_ENTITLEMENT=true` and test
+mode off, NO visitor can trigger an AI call) → per-device daily limit
+(`AI_RECOMMENDATIONS_DAILY_LIMIT`, default 5, IP backstop 4x) → 6h response
+cache + in-flight dedupe keyed by taste-profile hash. Counters/cache are
+in-memory per instance (documented as approximate). Private testing config:
+ENABLED=true, TEST_MODE=true, REQUIRE_ENTITLEMENT=false. Production launch
+later: TEST_MODE=false, REQUIRE_ENTITLEMENT=true — entitlement then needs a
+real plan lookup in `entitlement.ts` `resolveRecPlan()` once billing exists
+(and TMDB's commercial license FIRST, per the monetization gate above).
+
+**Privacy.** Library never leaves the device; requests carry only seeds
+(liked title ids), a compact genre/tone profile, and exclude ids. Controls on
+the page: personalization off, reset history, clear preferences. New
+localStorage keys: `wnw.recprefs.v1`, `wnw.recfeedback.v1`, `wnw.device.v1`.
+
+**Tests:** `src/lib/recommendations/*.test.ts` — ranking/filters, AI response
+validation, entitlement fail-closed, rate limits, cache/dedupe, profile
+building, bounded request sanitizing, and static security guardrails (key
+only in server config, no client imports of server AI modules).
