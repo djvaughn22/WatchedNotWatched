@@ -26,7 +26,7 @@ describe("loadRecConfig — fails closed", () => {
 describe("decideAIAccess", () => {
   const base = {
     AI_RECOMMENDATIONS_ENABLED: "true",
-    ANTHROPIC_API_KEY: "sk-test",
+    OPENAI_API_KEY: "sk-test",
   };
 
   it("private testing config allows AI", () => {
@@ -40,12 +40,20 @@ describe("decideAIAccess", () => {
   });
 
   it("master switch off wins over test mode", () => {
-    const c = loadRecConfig(env({ ANTHROPIC_API_KEY: "sk", AI_RECOMMENDATIONS_TEST_MODE: "true" }));
+    const c = loadRecConfig(env({ OPENAI_API_KEY: "sk", AI_RECOMMENDATIONS_TEST_MODE: "true" }));
     expect(decideAIAccess(c)).toEqual({ allowed: false, reason: "disabled" });
   });
 
   it("missing API key disables AI even when everything else is on", () => {
     const c = loadRecConfig(env({ AI_RECOMMENDATIONS_ENABLED: "true", AI_RECOMMENDATIONS_TEST_MODE: "true" }));
+    expect(decideAIAccess(c)).toEqual({ allowed: false, reason: "disabled" });
+  });
+
+  it("an Anthropic key no longer grants anything — only OPENAI_API_KEY counts", () => {
+    const c = loadRecConfig(
+      env({ AI_RECOMMENDATIONS_ENABLED: "true", AI_RECOMMENDATIONS_TEST_MODE: "true", ANTHROPIC_API_KEY: "sk-old" }),
+    );
+    expect(c.hasApiKey).toBe(false);
     expect(decideAIAccess(c)).toEqual({ allowed: false, reason: "disabled" });
   });
 

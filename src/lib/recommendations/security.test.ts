@@ -22,20 +22,25 @@ const files = readAll(SRC);
 const clientFiles = files.filter((f) => f.text.startsWith('"use client"'));
 
 describe("AI recommendations — static guardrails", () => {
-  it("the Anthropic key is referenced only in server config", () => {
+  it("the OpenAI key is referenced only in server config", () => {
     const offenders = files.filter(
-      (f) => f.text.includes("ANTHROPIC_API_KEY") && !f.path.endsWith("recommendations/config.ts") && !f.path.includes(".test."),
+      (f) => f.text.includes("OPENAI_API_KEY") && !f.path.endsWith("recommendations/config.ts") && !f.path.includes(".test."),
     );
     expect(offenders.map((f) => f.path)).toEqual([]);
   });
 
-  it("no NEXT_PUBLIC_ AI variables exist (nothing AI-related is inlined into the bundle)", () => {
-    const offenders = files.filter((f) => /NEXT_PUBLIC_\w*(ANTHROPIC|AI_RECOMMEND)/.test(f.text));
+  it("no Anthropic SDK usage remains anywhere", () => {
+    const offenders = files.filter((f) => f.text.includes("@anthropic-ai/sdk") && !f.path.includes(".test."));
     expect(offenders.map((f) => f.path)).toEqual([]);
   });
 
-  it("client components never import the server-side AI modules", () => {
-    const banned = ["recommendations/ai", "recommendations/entitlement", "recommendations/config", "recommendations/rateLimit", "recommendations/cache", "recommendations/retrieve", "@anthropic-ai/sdk"];
+  it("no NEXT_PUBLIC_ AI variables exist (nothing AI-related is inlined into the bundle)", () => {
+    const offenders = files.filter((f) => /NEXT_PUBLIC_\w*(OPENAI|ANTHROPIC|AI_RECOMMEND)/.test(f.text));
+    expect(offenders.map((f) => f.path)).toEqual([]);
+  });
+
+  it("client components never import the server-side AI modules or the OpenAI SDK", () => {
+    const banned = ["recommendations/ai", "recommendations/entitlement", "recommendations/config", "recommendations/rateLimit", "recommendations/cache", "recommendations/retrieve", 'from "openai"', "@anthropic-ai/sdk"];
     const offenders = clientFiles.filter((f) => banned.some((b) => f.text.includes(b)));
     expect(offenders.map((f) => f.path)).toEqual([]);
   });

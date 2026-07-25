@@ -42,9 +42,9 @@ export function loadRecConfig(env: NodeJS.ProcessEnv = process.env): RecConfig {
     dailyLimit: int(env.AI_RECOMMENDATIONS_DAILY_LIMIT, 5, 1, 200),
     resultCount: int(env.AI_RECOMMENDATIONS_RESULT_COUNT, 5, 1, 10),
     maxCandidates: int(env.AI_RECOMMENDATIONS_MAX_CANDIDATES, 12, 5, 20),
-    model: env.AI_RECOMMENDATIONS_MODEL || "claude-opus-4-8",
+    model: env.OPENAI_RECOMMENDATIONS_MODEL || "gpt-5.4-nano",
     maxOutputTokens: int(env.AI_RECOMMENDATIONS_MAX_TOKENS, 4000, 500, 8000),
     timeoutMs: int(env.AI_RECOMMENDATIONS_TIMEOUT_MS, 25000, 1000, 60000),
-    hasApiKey: !!env.ANTHROPIC_API_KEY,
+    hasApiKey: !!env.OPENAI_API_KEY,
   };
 }

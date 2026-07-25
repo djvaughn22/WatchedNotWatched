@@ -88,7 +88,10 @@ controls. Old `/api/recommend` (Homepage deck) is untouched.
 retrieval from TMDB (seed graph + discover top-up) → hard filters (watched,
 dismissed, media type) → deterministic documented scoring → detail enrichment
 (genres/runtime/rating/providers) → content/runtime filters → optional AI
-layer. The AI (Claude via `@anthropic-ai/sdk`, server-only) only reranks and
+layer. The AI (OpenAI Responses API via the official `openai` SDK,
+server-only, default model `gpt-5.4-nano`, override with
+`OPENAI_RECOMMENDATIONS_MODEL`; swapped from Anthropic 2026-07-24 to use
+DJ's existing OpenAI credits) only reranks and
 explains candidates it was handed by id; `validate.ts` rejects any invented
 id, duplicate, missing guide field, or spoiler tell, and malformed responses
 fall back to the deterministic template cards. Match labels come from score
@@ -96,7 +99,7 @@ thresholds documented in `rank.ts` — no fake percentages.
 
 **Cost model (fails closed).** With no env vars set, the AI layer is OFF and
 the page is deterministic-only ($0 — TMDB attribution only). Gates in order:
-`AI_RECOMMENDATIONS_ENABLED` + `ANTHROPIC_API_KEY` → entitlement
+`AI_RECOMMENDATIONS_ENABLED` + `OPENAI_API_KEY` → entitlement
 (`AI_RECOMMENDATIONS_TEST_MODE=true` is the temporary testing plan; there is
 no billing, so with `AI_RECOMMENDATIONS_REQUIRE_ENTITLEMENT=true` and test
 mode off, NO visitor can trigger an AI call) → per-device daily limit

@@ -10,7 +10,7 @@ What to watch next, based on what you like. Rate titles Watched✓/NotWatched, g
 - **Family chrome:** `src/app/OpenMirrorNav.tsx` / `OpenMirrorFooter.tsx` / `OpenMirrorTheme.tsx` are synced copies — canonical source is the hub repo `packages/openmirror-ui/` + `scripts/sync-ui.sh`. Never edit the local copies.
 - **Theme:** family ☀️/🌙 toggle; `om-theme` localStorage key.
 - **Persistence (localStorage):** `wnw.status.v1`, `wnw.saved.v1`, `wnw.recent.v1`, `wnw.library.v2`, `wnw.email.v1`, `wnw.tally.v1`, `wnw.recprefs.v1`, `wnw.recfeedback.v1`, `wnw.device.v1`.
-- **Env vars (names only):** `TMDB_API_KEY`, `TMDB_ACCESS_TOKEN`, `DEFAULT_WATCH_REGION`, `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `YOUTUBE_API_KEY`, `ANTHROPIC_API_KEY`, `AI_RECOMMENDATIONS_ENABLED`, `AI_RECOMMENDATIONS_TEST_MODE`, `AI_RECOMMENDATIONS_REQUIRE_ENTITLEMENT`, `AI_RECOMMENDATIONS_DAILY_LIMIT`, `AI_RECOMMENDATIONS_RESULT_COUNT`.
+- **Env vars (names only):** `TMDB_API_KEY`, `TMDB_ACCESS_TOKEN`, `DEFAULT_WATCH_REGION`, `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `YOUTUBE_API_KEY`, `OPENAI_API_KEY`, `OPENAI_RECOMMENDATIONS_MODEL`, `AI_RECOMMENDATIONS_ENABLED`, `AI_RECOMMENDATIONS_TEST_MODE`, `AI_RECOMMENDATIONS_REQUIRE_ENTITLEMENT`, `AI_RECOMMENDATIONS_DAILY_LIMIT`, `AI_RECOMMENDATIONS_RESULT_COUNT`.
 - **External services:** TMDB (ratings/metadata; commercial license required before charging money), Resend (email list — hidden until keys are set in Vercel), GA4.
 - **Protected:** the focused MVP direction. No family-filter promises, no streaming/playback claims, no provider-coverage claims beyond what the code really does.
 - **Make changes in:** `src/app/page.tsx` (home deck), `src/lib/` (ranking).

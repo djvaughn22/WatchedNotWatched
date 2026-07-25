@@ -1,8 +1,9 @@
-// The single place that talks to Anthropic (SERVER ONLY — the key never
-// leaves this module, callers get validated data or null). One retry, hard
-// timeout, bounded prompt, structured JSON output validated by validate.ts.
+// The single place that talks to the AI provider (SERVER ONLY — the key
+// never leaves this module, callers get validated data or null). Provider is
+// OpenAI (Responses API, structured JSON). One retry, hard timeout, bounded
+// prompt; output is still forced through validate.ts before anyone sees it.
 
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import type { AIRecommendationResponse, RecCandidate, RecMode, TasteProfile } from "./types";
 import { validateAIResponse } from "./validate";
 
@@ -15,7 +16,7 @@ const MODE_BRIEF: Record<RecMode, string> = {
   quick_watch: "Pick titles that fit a short time budget — tight movies or series with short episodes.",
 };
 
-// Stable system prompt (cache-friendly). Everything volatile goes in the user turn.
+// Stable instructions. Everything volatile goes in the user input.
 const SYSTEM = `You rank and explain movie/TV recommendations for the app WatchedNotWatched.
 
 You will get a viewer taste profile and a numbered list of CANDIDATES (real titles from a movie database). Rules:
@@ -25,8 +26,12 @@ You will get a viewer taste profile and a numbered list of CANDIDATES (real titl
 - "knowBeforeWatching": exactly one honest possible concern (pacing, tone, commitment, intensity...).
 - "spoilerFreeContentGuide": short factual guidance for each field (violence, language, sexualContent, frighteningIntensity, substanceUse, matureThemes) based on what the title is known for; write "Not a concern" when it isn't one. If you don't know the title well, keep guidance general to its genre and rating.
 - Everything must be spoiler-free: never reveal plot turns, endings, or character fates.
-- "summary": one sentence on what you looked for. "tasteProfile": what this viewer enjoys/avoids based on the profile given.`;
+- "summary": one sentence on what you looked for. "tasteProfile": what this viewer enjoys/avoids based on the profile given.
+- Be concise everywhere; no filler.`;
 
+// Strict-mode JSON schema for the Responses API: every object closes
+// additionalProperties and lists all keys as required (optionality is
+// expressed as string|null).
 const OUTPUT_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -36,11 +41,11 @@ const OUTPUT_SCHEMA = {
     tasteProfile: {
       type: "object",
       additionalProperties: false,
-      required: ["enjoys", "avoids"],
+      required: ["enjoys", "avoids", "currentMood"],
       properties: {
         enjoys: { type: "array", items: { type: "string" } },
         avoids: { type: "array", items: { type: "string" } },
-        currentMood: { type: "string" },
+        currentMood: { type: ["string", "null"] },
       },
     },
     recommendations: {
@@ -118,7 +123,8 @@ function buildUserPrompt(
 
 /**
  * Rerank + explain. Returns a validated response or null (caller falls back
- * to deterministic output). Never throws.
+ * to deterministic output). Never throws — timeouts, rate limits, exhausted
+ * credits, refusals, and malformed output all resolve to null.
  */
 export async function aiRerank(
   profile: TasteProfile,
@@ -130,19 +136,25 @@ export async function aiRerank(
   const prompt = buildUserPrompt(profile, mode, candidates, seedTitles, opts.resultCount);
   if (prompt.length > 20_000) return null; // hard prompt-size ceiling
 
-  const client = new Anthropic({ timeout: opts.timeoutMs, maxRetries: 1 });
+  const client = new OpenAI({ timeout: opts.timeoutMs, maxRetries: 1 });
   const allowedIds = new Set(candidates.map((c) => c.id));
 
   try {
-    const response = await client.messages.create({
+    const response = await client.responses.create({
       model: opts.model,
-      max_tokens: opts.maxOutputTokens,
-      system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-      output_config: { format: { type: "json_schema", schema: OUTPUT_SCHEMA } },
-      messages: [{ role: "user", content: prompt }],
+      instructions: SYSTEM,
+      input: prompt,
+      max_output_tokens: opts.maxOutputTokens,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "recommendations",
+          strict: true,
+          schema: OUTPUT_SCHEMA as unknown as Record<string, unknown>,
+        },
+      },
     });
-    if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return null;
-    const text = response.content.find((b) => b.type === "text")?.text;
+    const text = response.output_text;
     if (!text) return null;
     return validateAIResponse(JSON.parse(text), allowedIds);
   } catch {
