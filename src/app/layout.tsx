@@ -45,7 +45,7 @@ export default function RootLayout({
         />
         <ProductNav />
         {children}
-        <OpenMirrorFooter siteName="WatchedNotWatched.com" tagline="What to watch next, based on what you like." accent="#22D3EE" />
+        <OpenMirrorFooter />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-KCQDDZQ17M"
           strategy="afterInteractive"
