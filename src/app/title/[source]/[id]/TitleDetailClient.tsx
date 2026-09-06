@@ -55,16 +55,18 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
         if (!data) { setStatus("error"); return; }
         setTitle(data);
         setStatus("done");
-        if (!data.trailer) {
+        if (data.mediaType !== "book" && !data.trailer) {
           fetch(`/api/trailer?title=${encodeURIComponent(data.title)}&year=${data.releaseYear ?? ""}`)
             .then((r) => r.json())
             .then((t) => alive && setFallbackTrailer(t))
             .catch(() => {});
         }
-        fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
-          .then((r) => r.json())
-          .then((s) => alive && setSimilar(s))
-          .catch(() => {});
+        if (data.mediaType !== "book") {
+          fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
+            .then((r) => r.json())
+            .then((s) => alive && setSimilar(s))
+            .catch(() => {});
+        }
       })
       .catch(() => alive && setStatus("error"));
     return () => { alive = false; };
@@ -87,10 +89,12 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
     sourceId: id,
     mediaType: title.mediaType,
     title: title.title,
+    creators: title.creators,
     releaseYear: title.releaseYear,
     posterUrl: title.posterUrl,
     genres: title.genres,
   };
+  const book = title.mediaType === "book";
 
   const trailer = title.trailer ?? fallbackTrailer?.trailer ?? null;
   const trailerSearchUrl =
@@ -114,22 +118,25 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
         <div className="h-48 w-32 shrink-0 overflow-hidden rounded-lg border border-[#26324c] bg-[#0b1220] sm:h-60 sm:w-40">
           {title.posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={title.posterUrl} alt={`${title.title} poster`} className="h-full w-full object-cover" />
+            <img src={title.posterUrl} alt={`${title.title} ${book ? "cover" : "poster"}`} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
-              <span className="text-2xl" aria-hidden>🎬</span>
-              <span className="text-[10px] font-semibold text-[#64748b]">No poster</span>
+              <span className="text-2xl" aria-hidden>{book ? "📚" : "🎬"}</span>
+              <span className="text-[10px] font-semibold text-[#64748b]">No {book ? "cover" : "poster"}</span>
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-black text-[#e8edf5] sm:text-3xl">{title.title}</h1>
           <p className="mt-1 text-sm text-[#94a3b8]">
-            {title.mediaType === "series" ? "TV" : "Movie"}
+            {title.mediaType === "series" ? "TV" : book ? "Book" : "Movie"}
             {title.releaseYear ? ` · ${title.releaseYear}` : ""}
             {title.runtimeMinutes ? ` · ${title.runtimeMinutes} min` : ""}
             {title.officialRating ? ` · ${title.officialRating}` : ""}
           </p>
+          {title.creators && title.creators.length > 0 && (
+            <p className="mt-1 text-sm text-[#94a3b8]">by {title.creators.join(", ")}</p>
+          )}
           {title.genres && title.genres.length > 0 && (
             <p className="mt-1 text-xs text-[#64748b]">{title.genres.join(" · ")}</p>
           )}
@@ -156,8 +163,8 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
                   </button>
                 ))}
               </div>
-              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Watch again?">
-                <span className="text-xs font-bold uppercase tracking-wide text-[#64748b]">Again?</span>
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={book ? "Read again?" : "Watch again?"}>
+                <span className="text-xs font-bold uppercase tracking-wide text-[#64748b]">{book ? "Read again?" : "Again?"}</span>
                 {AGAINS.map((a) => (
                   <button
                     key={a}
@@ -179,6 +186,8 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
         <p className="mt-6 text-sm leading-relaxed text-[#94a3b8]">{title.synopsis}</p>
       )}
 
+      {!book && (
+        <>
       {/* Where to watch */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
         <h2 className="text-sm font-bold text-[#e8edf5]">Where to watch</h2>
@@ -269,6 +278,8 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             ))}
           </ul>
         </section>
+      )}
+        </>
       )}
 
       {/* Sources */}

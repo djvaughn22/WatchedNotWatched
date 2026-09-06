@@ -58,6 +58,7 @@ export default function TriageButtons({
   onClear: (id: string) => void;
   size?: "sm" | "lg";
 }) {
+  const book = titleRef.mediaType === "book";
   const pad = size === "lg" ? "px-4 py-2.5 text-sm" : "px-2 py-2 text-xs";
   return (
     <div className={size === "lg" ? "flex flex-wrap gap-2" : "grid gap-1.5"}>
@@ -71,7 +72,11 @@ export default function TriageButtons({
               aria-pressed={active}
               className={`rounded-lg border font-bold transition-colors ${pad} ${active ? b.classActive : b.classIdle}`}
             >
-              {active ? b.active : b.idle}
+              {book && b.status === "watched"
+                ? "✓ Read"
+                : book && b.status === "want_to_watch"
+                  ? active ? "★ On your list" : "+ Want to Read"
+                  : active ? b.active : b.idle}
             </button>
           );
         })}

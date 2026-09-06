@@ -14,7 +14,6 @@ const SIZES: Record<ShareImageSize, { w: number; h: number }> = {
 
 // Family palette (flat, no gradients, no red).
 const BG = "#0b1220";
-const CARD = "#141d2e";
 const BORDER = "#26324c";
 const TEXT = "#e8edf5";
 const MUTED = "#94a3b8";
@@ -41,9 +40,9 @@ export function renderLibraryImage(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  const watched = entries.filter((e) => e.status === "watched");
-  const want = entries.filter((e) => e.status === "want_to_watch");
-  const loved = watched.filter((e) => e.myTake === "loved");
+  const finished = entries.filter((e) => e.status === "watched");
+  const upNext = entries.filter((e) => e.status === "want_to_watch");
+  const loved = finished.filter((e) => e.myTake === "loved");
 
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, w, h);
@@ -77,7 +76,7 @@ export function renderLibraryImage(
   ctx.font = `900 58px ${sans}`;
   ctx.fillStyle = TEXT;
   ctx.fillText(
-    `${watched.length} watched · ${want.length} to watch`,
+    `${finished.length} finished · ${upNext.length} up next`,
     cx,
     size === "portrait" ? 260 : 225,
   );
@@ -86,7 +85,7 @@ export function renderLibraryImage(
   ctx.textAlign = "left";
   const blocks: Array<{ heading: string; items: LibraryEntry[] }> = [
     { heading: "Loved", items: loved },
-    { heading: "Up next", items: want },
+    { heading: "Up next", items: upNext },
   ].filter((b) => b.items.length > 0);
 
   const perBlock = size === "portrait" ? 5 : 4;
@@ -122,7 +121,7 @@ export function renderLibraryImage(
   ctx.textAlign = "center";
   ctx.font = `600 28px ${sans}`;
   ctx.fillStyle = MUTED;
-  ctx.fillText("A watch list you actually keep.", cx, h - 158);
+  ctx.fillText("One list for what you watch and read.", cx, h - 158);
   ctx.font = `900 30px ${sans}`;
   ctx.fillStyle = ACCENT;
   ctx.fillText("WATCHEDNOTWATCHED.COM", cx, h - 92);

@@ -9,16 +9,16 @@ export default function AboutPage() {
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-black text-[#e8edf5]">About WatchedNotWatched</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-[#94a3b8]">
-          WatchedNotWatched is a personal record of what you have watched and what you want to watch next.
-          Search a title, mark it Watched or Want to Watch, add your take, and keep going.
+          WatchedNotWatched is a personal record of what you have watched, what you have read, and what comes next.
+          Search a title, mark it Watched or Read, add your take, and keep going.
         </p>
 
         <h2 className="mt-8 text-lg font-bold text-[#e8edf5]">What it does</h2>
         <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed text-[#94a3b8]">
           <li>· Search movies and TV shows.</li>
-          <li>· One-tap Watched / Want to Watch.</li>
+          <li>· One-tap Watched / Want to Watch and Read / Want to Read.</li>
           <li>· Your take: Loved it, Liked it, Fine, Not for me — and whether you’d watch it again.</li>
-          <li>· A filterable library: Want to Watch, Watched, Watch Again, Favorites.</li>
+          <li>· One filterable library for movies, TV, and books.</li>
           <li>· Trailers and similar titles.</li>
           <li>· Links to legitimate streaming providers.</li>
           <li>· Export your library as CSV, JSON, or Markdown.</li>

@@ -12,6 +12,7 @@ export interface LibraryEntry {
   sourceId: string;
   mediaType: string; // "movie" | "series" (open for future media)
   title: string;
+  creators?: string[];
   releaseYear?: number;
   posterUrl?: string;
   genres?: string[];
@@ -55,6 +56,24 @@ export const STATUS_LABELS: Record<LibraryStatus, string> = {
   prob_not: "Prob Not",
 };
 
+export function isBook(mediaType: string): boolean {
+  return mediaType === "book";
+}
+
+export function statusLabel(status: LibraryStatus, mediaType: string): string {
+  if (!isBook(mediaType)) return STATUS_LABELS[status];
+  if (status === "watched") return "Read";
+  if (status === "want_to_watch") return "Want to Read";
+  return "Prob Not";
+}
+
+export function mediaTypeLabel(mediaType: string): string {
+  if (mediaType === "series") return "TV";
+  if (mediaType === "book") return "Book";
+  if (mediaType === "movie") return "Movie";
+  return mediaType;
+}
+
 export function emptyStore(): LibraryStore {
   return { version: 2, entries: [] };
 }
@@ -92,6 +111,7 @@ export interface TitleRef {
   sourceId: string;
   mediaType: string;
   title: string;
+  creators?: string[];
   releaseYear?: number;
   posterUrl?: string;
   genres?: string[];
@@ -173,9 +193,9 @@ export type LibraryView =
 
 export const VIEW_LABELS: Record<LibraryView, string> = {
   all: "All",
-  want_to_watch: "Want to Watch",
-  watched: "Watched",
-  watch_again: "Watch Again",
+  want_to_watch: "Up Next",
+  watched: "Finished",
+  watch_again: "Again",
   favorites: "Favorites",
   not_for_me: "Not for Me",
   prob_not: "Prob Not",

@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "WatchedNotWatched",
     short_name: "WatchedNotWatched",
     description:
-      "Remember what you watched. Thumb movies and shows up or down, sort the Top 222 of any decade or genre, and get picks based on what you liked. No account — saved on your device.",
+      "Remember what you watched and read. Keep movies, shows, and books in one personal library. No account — saved on your device.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",

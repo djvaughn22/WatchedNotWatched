@@ -9,9 +9,11 @@ import { useSearchParams } from "next/navigation";
 import {
   AGAIN_LABELS,
   MY_TAKE_LABELS,
-  STATUS_LABELS,
   VIEW_LABELS,
   inView,
+  isBook,
+  mediaTypeLabel,
+  statusLabel,
   type Again,
   type LibraryEntry,
   type LibraryView,
@@ -176,7 +178,7 @@ export default function LibraryClient() {
       <>
         <div className="rounded-2xl border border-[#26324c] bg-[#141d2e] p-8 text-center">
           <p className="text-[#e8edf5]">Your library is empty.</p>
-          <p className="mt-1 text-sm text-[#94a3b8]">Search a title and tap Watched or Want to Watch — it lands here.</p>
+          <p className="mt-1 text-sm text-[#94a3b8]">Search a movie, show, or book and log it — it lands here.</p>
           <Link href="/search" className="mt-4 inline-block rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-bold text-[#06131a]">Search titles</Link>
         </div>
         {undoSnackbar}
@@ -211,6 +213,7 @@ export default function LibraryClient() {
           <option value="all">All types</option>
           <option value="movie">Movies</option>
           <option value="series">TV</option>
+          <option value="book">Books</option>
         </select>
         {genres.length > 0 && (
           <select value={genreFilter} onChange={(e) => setGenreFilter(e.target.value)} aria-label="Filter by genre" className={select}>
@@ -268,8 +271,8 @@ export default function LibraryClient() {
       {selecting && selected.size > 0 && (
         <div className="sticky top-14 z-30 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[#22D3EE] bg-[#0e1626] p-3 text-xs">
           <span className="font-bold text-[#e8edf5]">{selected.size} selected</span>
-          <button onClick={() => bulkMark("watched")} className="rounded-full bg-[#22D3EE] px-3 py-1.5 font-bold text-[#06131a]">Mark Watched</button>
-          <button onClick={() => bulkMark("want_to_watch")} className="rounded-full border border-[#60A5FA] px-3 py-1.5 font-semibold text-[#60A5FA]">Want to Watch</button>
+          <button onClick={() => bulkMark("watched")} className="rounded-full bg-[#22D3EE] px-3 py-1.5 font-bold text-[#06131a]">Mark Finished</button>
+          <button onClick={() => bulkMark("want_to_watch")} className="rounded-full border border-[#60A5FA] px-3 py-1.5 font-semibold text-[#60A5FA]">Save for Later</button>
           <button onClick={() => bulkMark("prob_not")} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8]">Prob Not</button>
           {AGAINS.map((a) => (
             <button key={a} onClick={() => bulkAgain(a)} className="rounded-full border border-[#26324c] px-3 py-1.5 font-semibold text-[#94a3b8] hover:text-[#e8edf5]">
@@ -309,18 +312,19 @@ export default function LibraryClient() {
                 {e.posterUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={e.posterUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-                ) : <div className="flex h-full w-full items-center justify-center text-2xl">🎬</div>}
+                ) : <div className="flex h-full w-full items-center justify-center text-2xl">{isBook(e.mediaType) ? "📚" : "🎬"}</div>}
               </Link>
               <div className="flex min-w-0 flex-1 flex-col">
                 <Link href={`/title/${e.source}/${e.sourceId}?mediaType=${e.mediaType}`} className="truncate text-sm font-bold text-[#e8edf5] hover:underline">
                   {e.title}
                 </Link>
                 <p className="text-xs text-[#94a3b8]">
-                  {e.mediaType === "series" ? "TV" : "Movie"}{e.releaseYear ? ` · ${e.releaseYear}` : ""}
+                  {mediaTypeLabel(e.mediaType)}{e.releaseYear ? ` · ${e.releaseYear}` : ""}
                 </p>
+                {e.creators && e.creators.length > 0 && <p className="truncate text-xs text-[#64748b]">{e.creators.join(", ")}</p>}
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${e.status === "watched" ? "border-[#22D3EE] text-[#22D3EE]" : e.status === "want_to_watch" ? "border-[#60A5FA] text-[#60A5FA]" : "border-[#64748B] text-[#94a3b8]"}`}>
-                    {STATUS_LABELS[e.status]}
+                    {statusLabel(e.status, e.mediaType)}
                   </span>
                   {selecting && e.myTake && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">{MY_TAKE_LABELS[e.myTake]}</span>}
                   {selecting && e.again && <span className="rounded-full border border-[#26324c] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">Again: {AGAIN_LABELS[e.again]}</span>}
@@ -329,11 +333,11 @@ export default function LibraryClient() {
                   <div className="mt-auto flex flex-wrap gap-2 pt-2">
                     {e.status !== "watched" ? (
                       <button onClick={() => mark(e, "watched")} className="rounded-full bg-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#06131a]">
-                        Mark Watched
+                        {isBook(e.mediaType) ? "Mark Read" : "Mark Watched"}
                       </button>
                     ) : (
                       <button onClick={() => mark(e, "want_to_watch")} className="rounded-full border border-[#60A5FA]/60 px-3 py-1.5 text-xs font-semibold text-[#60A5FA]">
-                        Move to Want to Watch
+                        Move to {isBook(e.mediaType) ? "Want to Read" : "Want to Watch"}
                       </button>
                     )}
                     {e.status === "watched" && (
@@ -350,10 +354,10 @@ export default function LibraryClient() {
                         <select
                           value={e.again ?? ""}
                           onChange={(ev) => again(e.id, (ev.target.value || undefined) as Again | undefined)}
-                          aria-label={`Watch again for ${e.title}`}
+                          aria-label={`${isBook(e.mediaType) ? "Read" : "Watch"} again for ${e.title}`}
                           className={`rounded-full border bg-[#141d2e] px-2 py-1 text-xs ${e.again ? "border-[#22D3EE]/60 text-[#e8edf5]" : "border-[#26324c] text-[#94a3b8]"}`}
                         >
-                          <option value="">Watch again?</option>
+                          <option value="">{isBook(e.mediaType) ? "Read again?" : "Watch again?"}</option>
                           {AGAINS.map((a) => <option key={a} value={a}>Again: {AGAIN_LABELS[a]}</option>)}
                         </select>
                       </>

@@ -27,18 +27,30 @@ const entries: LibraryEntry[] = [
     status: "want_to_watch",
     addedAt: "2026-07-03T10:00:00Z",
   },
+  {
+    id: "openlibrary:OL45804W",
+    source: "openlibrary",
+    sourceId: "OL45804W",
+    mediaType: "book",
+    title: "Fantastic Mr Fox",
+    creators: ["Roald Dahl"],
+    releaseYear: 1970,
+    status: "watched",
+    addedAt: "2026-07-04T10:00:00Z",
+  },
 ];
 
 describe("entriesToCsv", () => {
   it("produces a header plus one row per entry, escaping quotes and commas", () => {
     const csv = entriesToCsv(entries);
     const lines = csv.trim().split("\n");
-    expect(lines).toHaveLength(3);
+    expect(lines).toHaveLength(4);
     expect(lines[0]).toContain("Title,Year,Type,Status,My Take,Again");
     expect(lines[1]).toContain('"Inception, the ""dream"" one"');
     expect(lines[1]).toContain("Loved it");
     expect(lines[1]).toContain("2026-07-02");
     expect(lines[2]).toContain("Want to Watch");
+    expect(lines[3]).toContain("Book,Read");
   });
 });
 
@@ -56,6 +68,7 @@ describe("entriesToMarkdown", () => {
     const md = entriesToMarkdown(entries);
     expect(md).toContain("## Want to Watch (1)");
     expect(md).toContain("## Watched (1)");
+    expect(md).toContain("## Read (1)");
     expect(md).toContain("My Take: Loved it");
   });
 });
@@ -63,7 +76,7 @@ describe("entriesToMarkdown", () => {
 describe("entriesToSummary", () => {
   it("counts and lists loved + up-next titles", () => {
     const s = entriesToSummary(entries);
-    expect(s).toContain("1 watched, 1 to watch");
+    expect(s).toContain("1 watched, 1 to watch, 1 read, 0 to read");
     expect(s).toContain("Loved:");
     expect(s).toContain("The Office (2005)");
   });

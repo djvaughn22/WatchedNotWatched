@@ -4,7 +4,8 @@
 import {
   AGAIN_LABELS,
   MY_TAKE_LABELS,
-  STATUS_LABELS,
+  mediaTypeLabel,
+  statusLabel,
   type LibraryEntry,
 } from "./library";
 
@@ -17,7 +18,7 @@ const CSV_HEADER = [
   "Again",
   "Genres",
   "Date Added",
-  "Date Watched",
+  "Date Finished",
   "ID",
 ];
 
@@ -27,7 +28,6 @@ function csvCell(value: string | number | undefined): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-const typeLabel = (t: string) => (t === "series" ? "TV" : t === "movie" ? "Movie" : t);
 const day = (iso?: string) => (iso ? iso.slice(0, 10) : "");
 
 export function entriesToCsv(entries: LibraryEntry[]): string {
@@ -35,8 +35,8 @@ export function entriesToCsv(entries: LibraryEntry[]): string {
     [
       csvCell(e.title),
       csvCell(e.releaseYear),
-      csvCell(typeLabel(e.mediaType)),
-      csvCell(STATUS_LABELS[e.status]),
+      csvCell(mediaTypeLabel(e.mediaType)),
+      csvCell(statusLabel(e.status, e.mediaType)),
       csvCell(e.myTake ? MY_TAKE_LABELS[e.myTake] : ""),
       csvCell(e.again ? AGAIN_LABELS[e.again] : ""),
       csvCell((e.genres ?? []).join("; ")),
@@ -66,8 +66,10 @@ export function entriesToJson(entries: LibraryEntry[]): string {
 export function entriesToMarkdown(entries: LibraryEntry[]): string {
   const lines: string[] = ["# My WatchedNotWatched library", ""];
   const sections: Array<[string, (e: LibraryEntry) => boolean]> = [
-    ["Want to Watch", (e) => e.status === "want_to_watch"],
-    ["Watched", (e) => e.status === "watched"],
+    ["Want to Watch", (e) => e.status === "want_to_watch" && e.mediaType !== "book"],
+    ["Want to Read", (e) => e.status === "want_to_watch" && e.mediaType === "book"],
+    ["Watched", (e) => e.status === "watched" && e.mediaType !== "book"],
+    ["Read", (e) => e.status === "watched" && e.mediaType === "book"],
   ];
   for (const [heading, match] of sections) {
     const group = entries.filter(match);
@@ -76,7 +78,7 @@ export function entriesToMarkdown(entries: LibraryEntry[]): string {
     for (const e of group) {
       const bits = [
         `**${e.title}**${e.releaseYear ? ` (${e.releaseYear})` : ""}`,
-        typeLabel(e.mediaType),
+        mediaTypeLabel(e.mediaType),
         e.myTake ? `My Take: ${MY_TAKE_LABELS[e.myTake]}` : "",
         e.again ? `Again: ${AGAIN_LABELS[e.again]}` : "",
       ].filter(Boolean);
@@ -91,12 +93,16 @@ export function entriesToMarkdown(entries: LibraryEntry[]): string {
 export function entriesToSummary(entries: LibraryEntry[]): string {
   const want = entries.filter((e) => e.status === "want_to_watch");
   const watched = entries.filter((e) => e.status === "watched");
+  const booksToRead = want.filter((e) => e.mediaType === "book");
+  const booksRead = watched.filter((e) => e.mediaType === "book");
+  const toWatch = want.filter((e) => e.mediaType !== "book");
+  const seen = watched.filter((e) => e.mediaType !== "book");
   const loved = watched.filter((e) => e.myTake === "loved");
   const list = (es: LibraryEntry[], cap: number) =>
     es.slice(0, cap).map((e) => `- ${e.title}${e.releaseYear ? ` (${e.releaseYear})` : ""}`).join("\n");
 
   const parts = [
-    `My WatchedNotWatched library: ${watched.length} watched, ${want.length} to watch.`,
+    `My WatchedNotWatched library: ${seen.length} watched, ${toWatch.length} to watch, ${booksRead.length} read, ${booksToRead.length} to read.`,
   ];
   if (loved.length > 0) parts.push(`\nLoved:\n${list(loved, 10)}`);
   if (want.length > 0) parts.push(`\nUp next:\n${list(want, 10)}`);

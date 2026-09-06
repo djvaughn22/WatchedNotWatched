@@ -28,6 +28,7 @@ export function toTitleRef(it: SearchResultItem): TitleRef {
     sourceId: it.sourceId,
     mediaType: it.mediaType,
     title: it.title,
+    creators: it.creators,
     releaseYear: it.releaseYear,
     posterUrl: it.posterUrl,
   };
@@ -63,10 +64,10 @@ export default function TitleCard({
       <Link href={detailHref} className="relative block aspect-[2/3] bg-[#0b1220]">
         {item.posterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.posterUrl} alt={`${item.title} poster`} className="h-full w-full object-cover" loading="lazy" />
+          <img src={item.posterUrl} alt={`${item.title} ${item.mediaType === "book" ? "cover" : "poster"}`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center">
-            <span className="text-3xl" aria-hidden>🎬</span>
+            <span className="text-3xl" aria-hidden>{item.mediaType === "book" ? "📚" : "🎬"}</span>
             <span className="text-xs font-semibold leading-snug text-[#94a3b8]">{item.title}</span>
           </div>
         )}
@@ -80,7 +81,7 @@ export default function TitleCard({
             className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-black text-[#06131a]"
             style={{ backgroundColor: STATUS_COLORS[status] }}
           >
-            {status === "watched" ? "Watched" : status === "want_to_watch" ? "On your list" : "Prob Not"}
+            {status === "watched" ? (item.mediaType === "book" ? "Read" : "Watched") : status === "want_to_watch" ? "On your list" : "Prob Not"}
           </span>
         )}
       </Link>
@@ -89,9 +90,12 @@ export default function TitleCard({
         <Link href={detailHref} className="min-w-0">
           <p className="line-clamp-2 text-sm font-bold leading-snug text-[#e8edf5]">{item.title}</p>
           <p className="text-xs text-[#94a3b8]">
-            {item.mediaType === "series" ? "TV" : "Movie"}
+            {item.mediaType === "series" ? "TV" : item.mediaType === "book" ? "Book" : "Movie"}
             {item.releaseYear ? ` · ${item.releaseYear}` : ""}
           </p>
+          {item.creators && item.creators.length > 0 && (
+            <p className="truncate text-xs text-[#64748b]">{item.creators.join(", ")}</p>
+          )}
         </Link>
 
         <div className="mt-auto">
@@ -116,8 +120,8 @@ export default function TitleCard({
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1" role="group" aria-label="Watch again?">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748b]">Again?</span>
+            <div className="flex items-center gap-1" role="group" aria-label={item.mediaType === "book" ? "Read again?" : "Watch again?"}>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748b]">{item.mediaType === "book" ? "Read again?" : "Again?"}</span>
               {AGAINS.map((a) => (
                 <button
                   key={a}

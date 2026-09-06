@@ -36,13 +36,16 @@ export default function SearchExperience({
   autoFocus = false,
   initialQuery = "",
   syncUrl = false,
+  initialKind = "watch",
 }: {
   autoFocus?: boolean;
   /** Seed the box from a ?q= deep link. */
   initialQuery?: string;
   /** Keep ?q= in the address bar so searches are shareable. */
   syncUrl?: boolean;
+  initialKind?: "watch" | "book";
 }) {
+  const [kind, setKind] = useState<"watch" | "book">(initialKind);
   const [query, setQuery] = useState(initialQuery);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
@@ -69,7 +72,7 @@ export default function SearchExperience({
     const controller = new AbortController();
     abortRef.current = controller;
     setStatus("loading");
-    fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal })
+    fetch(`/api/search?q=${encodeURIComponent(q)}${kind === "book" ? "&kind=book" : ""}`, { signal: controller.signal })
       .then((r) => r.json() as Promise<SearchResult>)
       .then((data) => {
         setItems(data.items ?? []);
@@ -86,7 +89,7 @@ export default function SearchExperience({
         if (e?.name === "AbortError") return;
         setStatus("error");
       });
-  }, []);
+  }, [kind]);
 
   // Debounce.
   useEffect(() => {
@@ -98,9 +101,12 @@ export default function SearchExperience({
   useEffect(() => {
     if (!syncUrl || typeof window === "undefined") return;
     const q = query.trim();
-    const url = q.length >= 2 ? `?q=${encodeURIComponent(q)}` : window.location.pathname;
+    const parts = new URLSearchParams();
+    if (q.length >= 2) parts.set("q", q);
+    if (kind === "book") parts.set("kind", "book");
+    const url = parts.size > 0 ? `?${parts}` : window.location.pathname;
     window.history.replaceState(null, "", url);
-  }, [query, syncUrl]);
+  }, [kind, query, syncUrl]);
 
   const commitRecent = (q: string) => {
     const next = [q, ...readRecent().filter((x) => x !== q)].slice(0, 6);
@@ -149,6 +155,22 @@ export default function SearchExperience({
 
   return (
     <div>
+      <div className="mb-3 grid grid-cols-2 rounded-full border border-[#26324c] bg-[#141d2e] p-1" role="group" aria-label="Search type">
+        {([["watch", "Movies + TV"], ["book", "Books"]] as const).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => {
+              setKind(value);
+              setItems([]);
+              setStatus(query.trim().length >= 2 ? "loading" : "idle");
+            }}
+            aria-pressed={kind === value}
+            className={`rounded-full px-3 py-2 text-sm font-bold transition-colors ${kind === value ? "bg-[#22D3EE] text-[#06131a]" : "text-[#94a3b8] hover:text-[#e8edf5]"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="relative">
         <input
           ref={inputRef}
@@ -156,8 +178,8 @@ export default function SearchExperience({
           value={query}
           autoFocus={autoFocus}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a movie or show…"
-          aria-label="Search a movie or show"
+          placeholder={kind === "book" ? "Search a book…" : "Search a movie or show…"}
+          aria-label={kind === "book" ? "Search a book" : "Search a movie or show"}
           className="w-full rounded-full border border-[#26324c] bg-[#141d2e] px-5 py-3.5 text-base text-[#e8edf5] outline-none placeholder:text-[#64748b] focus:border-[#22D3EE]"
         />
         {query.length > 0 && (

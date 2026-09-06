@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createTmdbAdapter } from "@/lib/media/tmdb";
 import { createTvmazeAdapter } from "@/lib/media/tvmaze";
 import { createWikidataAdapter } from "@/lib/media/wikidata";
+import { createOpenLibraryAdapter } from "@/lib/media/openlibrary";
 import type { MediaType } from "@/lib/media/types";
 
 export async function GET(req: NextRequest) {
@@ -16,6 +17,9 @@ export async function GET(req: NextRequest) {
     }
     if (source === "tvmaze") {
       return NextResponse.json(await createTvmazeAdapter().getTitle(id, mediaType));
+    }
+    if (source === "openlibrary") {
+      return NextResponse.json(await createOpenLibraryAdapter().getTitle(id, "book"));
     }
     // Legacy ids from earlier versions of the app.
     if (source === "wikidata") {

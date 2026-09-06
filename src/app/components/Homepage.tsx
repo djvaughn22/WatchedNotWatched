@@ -49,13 +49,21 @@ export function Homepage() {
               Not watched
             </span>
           </div>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <span className="rounded-full border border-[#22D3EE] bg-[#22D3EE]/10 px-3 py-1 text-xs font-black text-[#22D3EE]">
+              Read ✓
+            </span>
+            <span className="rounded-full border border-[#26324c] px-3 py-1 text-xs font-black text-[#94a3b8]">
+              Not read
+            </span>
+          </div>
           <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-5xl">
-            What to watch next,
+            What to watch or read next,
             <br />
             based on what you like.
           </h1>
           <p className="mt-3 text-sm text-[#94a3b8]">
-            Rate what you&apos;ve seen. The picks below change with every rating.
+            Log what you&apos;ve seen or read. Movie and TV picks change with every rating.
           </p>
           <div className="mt-6 text-left">
             <SearchExperience autoFocus />
@@ -100,8 +108,7 @@ export function Homepage() {
               </div>
             ) : (
               <p className="mt-2.5 text-sm text-[#94a3b8]">
-                Search a title, tap <strong className="text-[#e8edf5]">Watched</strong> or{" "}
-                <strong className="text-[#e8edf5]">Want to Watch</strong>, and keep going. Your library builds itself.
+                Search a title, tap <strong className="text-[#e8edf5]">Watched</strong>, <strong className="text-[#e8edf5]">Read</strong>, or save it for later. Your library builds itself.
               </p>
             )}
           </section>

@@ -1,7 +1,7 @@
 // Normalized internal media model. The UI consumes THIS, never a raw external
 // API shape. External response types stay inside adapters.
 
-export type MediaType = "movie" | "series" | "episode" | "video";
+export type MediaType = "movie" | "series" | "episode" | "video" | "book";
 
 export type DataStatus = "live" | "cached" | "editorial" | "sample" | "unavailable";
 
@@ -32,6 +32,7 @@ export interface MediaTitle {
   mediaType: MediaType;
   title: string;
   originalTitle?: string;
+  creators?: string[];
   releaseYear?: number;
   synopsis?: string;
   posterUrl?: string;
@@ -58,6 +59,7 @@ export interface SearchResultItem {
   sourceId: string;
   mediaType: MediaType;
   title: string;
+  creators?: string[];
   releaseYear?: number;
   posterUrl?: string;
   officialRating?: string;

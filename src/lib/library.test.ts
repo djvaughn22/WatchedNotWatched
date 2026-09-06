@@ -11,6 +11,7 @@ import {
   setAgain,
   setMyTake,
   setStatus,
+  statusLabel,
   type LibraryEntry,
   type TitleRef,
 } from "./library";
@@ -49,6 +50,14 @@ describe("setStatus", () => {
     store = setStatus(store, ref("tmdb:1"), "want_to_watch");
     expect(getEntry(store, "tmdb:1")?.myTake).toBe("loved");
     expect(getEntry(store, "tmdb:1")?.again).toBe("yes");
+  });
+});
+
+describe("book language", () => {
+  it("reuses the same statuses with Read / Want to Read labels", () => {
+    expect(statusLabel("watched", "book")).toBe("Read");
+    expect(statusLabel("want_to_watch", "book")).toBe("Want to Read");
+    expect(statusLabel("watched", "movie")).toBe("Watched");
   });
 });
 
