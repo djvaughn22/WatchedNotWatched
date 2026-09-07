@@ -28,4 +28,18 @@ describe("normalizeOpenLibrarySearchDoc", () => {
     expect(normalizeOpenLibrarySearchDoc({ key: "/books/OL7353617M", title: "An edition" })).toBeNull();
     expect(normalizeOpenLibrarySearchDoc({ key: "/works/OL1W" })).toBeNull();
   });
+
+  it("keeps a usable book result when optional cover, author, and publication data are absent", () => {
+    expect(normalizeOpenLibrarySearchDoc({ key: "/works/OL1W", title: "A long, coverless title" })).toEqual({
+      id: "openlibrary:OL1W",
+      source: "openlibrary",
+      sourceId: "OL1W",
+      mediaType: "book",
+      title: "A long, coverless title",
+      creators: undefined,
+      releaseYear: undefined,
+      posterUrl: undefined,
+      dataStatus: "live",
+    });
+  });
 });

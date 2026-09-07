@@ -8,6 +8,7 @@ import type { SearchResult, SearchResultItem } from "@/lib/media/types";
 import { useLibrary } from "@/lib/useLocal";
 import { track } from "@/lib/analytics";
 import type { LibraryStatus, TitleRef } from "@/lib/library";
+import { createSearchRequestGuard, isSearchAvailable } from "@/lib/searchRequest";
 import TitleCard from "./TitleCard";
 
 const RECENT_KEY = "wnw.recent.v1";
@@ -52,6 +53,7 @@ export default function SearchExperience({
   const [recent, setRecent] = useState<string[]>([]);
   const [tally, setTally] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const requestGuardRef = useRef(createSearchRequestGuard());
   const searchTrackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
@@ -64,6 +66,7 @@ export default function SearchExperience({
 
   const runSearch = useCallback((q: string) => {
     abortRef.current?.abort();
+    const request = requestGuardRef.current.begin();
     if (q.trim().length < 2) {
       setItems([]);
       setStatus("idle");
@@ -75,6 +78,8 @@ export default function SearchExperience({
     fetch(`/api/search?q=${encodeURIComponent(q)}${kind === "book" ? "&kind=book" : ""}`, { signal: controller.signal })
       .then((r) => r.json() as Promise<SearchResult>)
       .then((data) => {
+        if (!requestGuardRef.current.isCurrent(request)) return;
+        if (!isSearchAvailable(data)) throw new Error("Search provider unavailable");
         setItems(data.items ?? []);
         setStatus("done");
         // Report the search once typing settles, so GA sees "interstellar"
@@ -86,6 +91,7 @@ export default function SearchExperience({
         );
       })
       .catch((e) => {
+        if (!requestGuardRef.current.isCurrent(request)) return;
         if (e?.name === "AbortError") return;
         setStatus("error");
       });
@@ -147,6 +153,8 @@ export default function SearchExperience({
   };
 
   const nextTitle = () => {
+    requestGuardRef.current.invalidate();
+    abortRef.current?.abort();
     setQuery("");
     setItems([]);
     setStatus("idle");
@@ -160,6 +168,8 @@ export default function SearchExperience({
           <button
             key={value}
             onClick={() => {
+              requestGuardRef.current.invalidate();
+              abortRef.current?.abort();
               setKind(value);
               setItems([]);
               setStatus(query.trim().length >= 2 ? "loading" : "idle");
@@ -177,7 +187,16 @@ export default function SearchExperience({
           type="search"
           value={query}
           autoFocus={autoFocus}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const nextQuery = e.target.value;
+            // Do this in the input event, rather than waiting for the debounce,
+            // so an older result cannot flash while the reader is still typing.
+            requestGuardRef.current.invalidate();
+            abortRef.current?.abort();
+            setItems([]);
+            setStatus(nextQuery.trim().length >= 2 ? "loading" : "idle");
+            setQuery(nextQuery);
+          }}
           placeholder={kind === "book" ? "Search a book…" : "Search a movie or show…"}
           aria-label={kind === "book" ? "Search a book" : "Search a movie or show"}
           className="w-full rounded-full border border-[#26324c] bg-[#141d2e] px-5 py-3.5 text-base text-[#e8edf5] outline-none placeholder:text-[#64748b] focus:border-[#22D3EE]"
