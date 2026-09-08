@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTmdbAdapter } from "@/lib/media/tmdb";
+import { trendingBooks } from "@/lib/media/openlibrary";
 import { isValidDecade, isValidGenre } from "@/lib/media/genres";
 import type { MediaType, SearchResultItem } from "@/lib/media/types";
+
+export const maxDuration = 15;
 
 interface TopResponse {
   items: SearchResultItem[]; // up to LIST_SIZE, rank = array position + 1
@@ -21,6 +24,19 @@ const FULL = 222;
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
+
+  if (sp.get("kind") === "book") {
+    const limit = sp.get("n") === String(FULL) ? FULL : QUICK;
+    try {
+      // Open Library's trending list, not a fabricated ranking — capped at
+      // whatever it actually has rather than padded to look like a full board.
+      const items = await trendingBooks(Math.min(limit, 100), req.signal);
+      return NextResponse.json<TopResponse>({ items, supported: true });
+    } catch {
+      return NextResponse.json<TopResponse>({ items: [], supported: true });
+    }
+  }
+
   const mediaType = sp.get("type") === "series" ? "series" : "movie";
   const decadeParam = sp.get("decade") ?? "";
   const decade = isValidDecade(decadeParam) ? decadeParam : undefined; // none = all time

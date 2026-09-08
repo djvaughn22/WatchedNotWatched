@@ -6,6 +6,11 @@ import type { SearchResult } from "@/lib/media/types";
 
 const tmdbConfigured = () => !!(process.env.TMDB_ACCESS_TOKEN || process.env.TMDB_API_KEY);
 
+// Open Library's search endpoint is sometimes slow for common-word queries
+// (multi-second) and the adapter retries once on a timeout — give the route
+// real headroom rather than racing the platform's default function timeout.
+export const maxDuration = 25;
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   const kind = req.nextUrl.searchParams.get("kind");

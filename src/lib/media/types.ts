@@ -25,6 +25,16 @@ export interface AttributionReference {
   url?: string;
 }
 
+/** Book-only fields, namespaced so they never masquerade as movie/TV data. */
+export interface BookDetails {
+  workKey: string; // Open Library work key, e.g. "OL27482W"
+  editionKey?: string;
+  isbn?: string;
+  publisher?: string;
+  language?: string;
+  pageCount?: number;
+}
+
 export interface MediaTitle {
   id: string; // internal id: `${source}:${sourceId}`
   source: string; // "tmdb" | "sample" | ...
@@ -46,6 +56,7 @@ export interface MediaTitle {
   attribution?: AttributionReference[];
   dataStatus: DataStatus;
   updatedAt?: string;
+  book?: BookDetails;
 }
 
 export interface SearchOptions {
