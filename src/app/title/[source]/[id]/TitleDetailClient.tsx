@@ -13,6 +13,7 @@ import {
 } from "@/lib/library";
 import TitleCard from "@/app/components/TitleCard";
 import TriageButtons from "@/app/components/TriageButtons";
+import BookCover from "@/app/components/BookCover";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -61,12 +62,10 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             .then((t) => alive && setFallbackTrailer(t))
             .catch(() => {});
         }
-        if (data.mediaType !== "book") {
-          fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
-            .then((r) => r.json())
-            .then((s) => alive && setSimilar(s))
-            .catch(() => {});
-        }
+        fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
+          .then((r) => r.json())
+          .then((s) => alive && setSimilar(s))
+          .catch(() => {});
       })
       .catch(() => alive && setStatus("error"));
     return () => { alive = false; };
@@ -116,13 +115,15 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
       {/* Identity + actions */}
       <div className="flex gap-4">
         <div className="h-48 w-32 shrink-0 overflow-hidden rounded-lg border border-[#26324c] bg-[#0b1220] sm:h-60 sm:w-40">
-          {title.posterUrl ? (
+          {book ? (
+            <BookCover title={title.title} author={title.creators?.[0]} coverUrl={title.posterUrl} isbn={title.book?.isbn} />
+          ) : title.posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={title.posterUrl} alt={`${title.title} ${book ? "cover" : "poster"}`} className="h-full w-full object-cover" />
+            <img src={title.posterUrl} alt={`${title.title} poster`} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
-              <span className="text-2xl" aria-hidden>{book ? "📚" : "🎬"}</span>
-              <span className="text-[10px] font-semibold text-[#64748b]">No {book ? "cover" : "poster"}</span>
+              <span className="text-2xl" aria-hidden>🎬</span>
+              <span className="text-[10px] font-semibold text-[#64748b]">No poster</span>
             </div>
           )}
         </div>
@@ -137,8 +138,30 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           {title.creators && title.creators.length > 0 && (
             <p className="mt-1 text-sm text-[#94a3b8]">by {title.creators.join(", ")}</p>
           )}
+          {book && (title.book?.publisher || title.book?.pageCount || title.book?.isbn) && (
+            <p className="mt-1 text-xs text-[#64748b]">
+              {[
+                title.book?.publisher,
+                title.book?.pageCount ? `${title.book.pageCount} pages` : undefined,
+                title.book?.language ? title.book.language.toUpperCase() : undefined,
+                title.book?.isbn ? `ISBN ${title.book.isbn}` : undefined,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           {title.genres && title.genres.length > 0 && (
             <p className="mt-1 text-xs text-[#64748b]">{title.genres.join(" · ")}</p>
+          )}
+          {book && (
+            <a
+              href={`https://openlibrary.org/works/${title.book?.workKey ?? id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block text-xs font-semibold text-[#22D3EE] hover:underline"
+            >
+              View on Open Library →
+            </a>
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -188,7 +211,7 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
 
       {!book && (
         <>
-      {/* Where to watch */}
+          {/* Where to watch */}
       <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
         <h2 className="text-sm font-bold text-[#e8edf5]">Where to watch</h2>
         {title.availability && title.availability.length > 0 ? (
@@ -265,11 +288,13 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
           </p>
         )}
       </section>
+        </>
+      )}
 
-      {/* Similar titles */}
+      {/* Similar titles / related books */}
       {similar && similar.supported && similar.items.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-sm font-bold text-[#e8edf5]">Similar titles</h2>
+          <h2 className="text-sm font-bold text-[#e8edf5]">{book ? "Related books" : "Similar titles"}</h2>
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {similar.items.slice(0, 8).map((it) => (
               <li key={it.id}>
@@ -278,8 +303,6 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
             ))}
           </ul>
         </section>
-      )}
-        </>
       )}
 
       {/* Sources */}

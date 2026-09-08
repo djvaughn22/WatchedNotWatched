@@ -2,6 +2,9 @@
 
 // The rapid-log loop: type a few letters → poster grid → one tap → next.
 // A session tally keeps score; the box is always ready for the next title.
+// Media kind is NOT local state here — it follows the global product mode
+// (WatchedNotWatched vs. ReadNotRead) so search can never drift out of sync
+// with the rest of the page.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SearchResult, SearchResultItem } from "@/lib/media/types";
@@ -9,15 +12,18 @@ import { useLibrary } from "@/lib/useLocal";
 import { track } from "@/lib/analytics";
 import type { LibraryStatus, TitleRef } from "@/lib/library";
 import { createSearchRequestGuard, isSearchAvailable } from "@/lib/searchRequest";
+import { useMode } from "@/app/ModeProvider";
+import { copyFor } from "@/lib/mode";
 import TitleCard from "./TitleCard";
 
 const RECENT_KEY = "wnw.recent.v1";
 const TALLY_KEY = "wnw.tally.v1"; // per-browser-session logging count
+const CLIENT_TIMEOUT_MS = 22000; // covers the server's one retry on a slow Open Library draw
 
-function readRecent(): string[] {
+function readRecent(mode: "screen" | "book"): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(RECENT_KEY);
+    const raw = window.localStorage.getItem(`${RECENT_KEY}.${mode}`);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr.filter((x) => typeof x === "string").slice(0, 6) : [];
   } catch {
@@ -37,16 +43,15 @@ export default function SearchExperience({
   autoFocus = false,
   initialQuery = "",
   syncUrl = false,
-  initialKind = "watch",
 }: {
   autoFocus?: boolean;
   /** Seed the box from a ?q= deep link. */
   initialQuery?: string;
   /** Keep ?q= in the address bar so searches are shareable. */
   syncUrl?: boolean;
-  initialKind?: "watch" | "book";
 }) {
-  const [kind, setKind] = useState<"watch" | "book">(initialKind);
+  const { mode, setMode } = useMode();
+  const copy = copyFor(mode);
   const [query, setQuery] = useState(initialQuery);
   const [items, setItems] = useState<SearchResultItem[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
@@ -58,44 +63,54 @@ export default function SearchExperience({
   const inputRef = useRef<HTMLInputElement>(null);
   const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
 
+  // Legacy `?kind=book` search deep links still switch into ReadNotRead.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRecent(readRecent());
-    setTally(readTally());
+    if (new URLSearchParams(window.location.search).get("kind") === "book") setMode("book");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const runSearch = useCallback((q: string) => {
-    abortRef.current?.abort();
-    const request = requestGuardRef.current.begin();
-    if (q.trim().length < 2) {
-      setItems([]);
-      setStatus("idle");
-      return;
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setStatus("loading");
-    fetch(`/api/search?q=${encodeURIComponent(q)}${kind === "book" ? "&kind=book" : ""}`, { signal: controller.signal })
-      .then((r) => r.json() as Promise<SearchResult>)
-      .then((data) => {
-        if (!requestGuardRef.current.isCurrent(request)) return;
-        if (!isSearchAvailable(data)) throw new Error("Search provider unavailable");
-        setItems(data.items ?? []);
-        setStatus("done");
-        // Report the search once typing settles, so GA sees "interstellar"
-        // instead of every debounce step along the way.
-        if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
-        searchTrackTimer.current = setTimeout(
-          () => track("search", { search_term: q, results: (data.items ?? []).length }),
-          1500,
-        );
-      })
-      .catch((e) => {
-        if (!requestGuardRef.current.isCurrent(request)) return;
-        if (e?.name === "AbortError") return;
-        setStatus("error");
-      });
-  }, [kind]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecent(readRecent(mode));
+    setTally(readTally());
+  }, [mode]);
+
+  const runSearch = useCallback(
+    (q: string) => {
+      abortRef.current?.abort();
+      const request = requestGuardRef.current.begin();
+      if (q.trim().length < 2) {
+        setItems([]);
+        setStatus("idle");
+        return;
+      }
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStatus("loading");
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(CLIENT_TIMEOUT_MS)]);
+      fetch(`/api/search?q=${encodeURIComponent(q)}${mode === "book" ? "&kind=book" : ""}`, { signal })
+        .then((r) => r.json() as Promise<SearchResult>)
+        .then((data) => {
+          if (!requestGuardRef.current.isCurrent(request)) return;
+          if (!isSearchAvailable(data)) throw new Error("Search provider unavailable");
+          setItems(data.items ?? []);
+          setStatus("done");
+          // Report the search once typing settles, so GA sees "interstellar"
+          // instead of every debounce step along the way.
+          if (searchTrackTimer.current) clearTimeout(searchTrackTimer.current);
+          searchTrackTimer.current = setTimeout(
+            () => track("search", { search_term: q, results: (data.items ?? []).length, mode }),
+            1500,
+          );
+        })
+        .catch((e) => {
+          if (!requestGuardRef.current.isCurrent(request)) return;
+          if (e?.name === "AbortError" && !signal.aborted) return;
+          setStatus("error");
+        });
+    },
+    [mode],
+  );
 
   // Debounce.
   useEffect(() => {
@@ -107,18 +122,18 @@ export default function SearchExperience({
   useEffect(() => {
     if (!syncUrl || typeof window === "undefined") return;
     const q = query.trim();
-    const parts = new URLSearchParams();
-    if (q.length >= 2) parts.set("q", q);
-    if (kind === "book") parts.set("kind", "book");
-    const url = parts.size > 0 ? `?${parts}` : window.location.pathname;
-    window.history.replaceState(null, "", url);
-  }, [kind, query, syncUrl]);
+    const url = new URL(window.location.href);
+    if (q.length >= 2) url.searchParams.set("q", q);
+    else url.searchParams.delete("q");
+    url.searchParams.delete("kind"); // superseded by the global ?mode= param
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }, [query, syncUrl]);
 
   const commitRecent = (q: string) => {
-    const next = [q, ...readRecent().filter((x) => x !== q)].slice(0, 6);
+    const next = [q, ...readRecent(mode).filter((x) => x !== q)].slice(0, 6);
     setRecent(next);
     try {
-      window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      window.localStorage.setItem(`${RECENT_KEY}.${mode}`, JSON.stringify(next));
     } catch {
       /* ignore */
     }
@@ -127,7 +142,7 @@ export default function SearchExperience({
   const clearRecent = () => {
     setRecent([]);
     try {
-      window.localStorage.removeItem(RECENT_KEY);
+      window.localStorage.removeItem(`${RECENT_KEY}.${mode}`);
     } catch {
       /* ignore */
     }
@@ -161,26 +176,26 @@ export default function SearchExperience({
     inputRef.current?.focus();
   };
 
+  // A mode switch elsewhere on the page must never leave a stale result set
+  // or an in-flight request from the other mode on screen. Skipped on the
+  // very first render — the debounce effect already covers initial mount.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    requestGuardRef.current.invalidate();
+    abortRef.current?.abort();
+    setItems([]);
+    setStatus(query.trim().length >= 2 ? "loading" : "idle");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (query.trim().length >= 2) runSearch(query);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   return (
     <div>
-      <div className="mb-3 grid grid-cols-2 rounded-full border border-[#26324c] bg-[#141d2e] p-1" role="group" aria-label="Search type">
-        {([["watch", "Movies + TV"], ["book", "Books"]] as const).map(([value, label]) => (
-          <button
-            key={value}
-            onClick={() => {
-              requestGuardRef.current.invalidate();
-              abortRef.current?.abort();
-              setKind(value);
-              setItems([]);
-              setStatus(query.trim().length >= 2 ? "loading" : "idle");
-            }}
-            aria-pressed={kind === value}
-            className={`rounded-full px-3 py-2 text-sm font-bold transition-colors ${kind === value ? "bg-[#22D3EE] text-[#06131a]" : "text-[#94a3b8] hover:text-[#e8edf5]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       <div className="relative">
         <input
           ref={inputRef}
@@ -197,8 +212,8 @@ export default function SearchExperience({
             setStatus(nextQuery.trim().length >= 2 ? "loading" : "idle");
             setQuery(nextQuery);
           }}
-          placeholder={kind === "book" ? "Search a book…" : "Search a movie or show…"}
-          aria-label={kind === "book" ? "Search a book" : "Search a movie or show"}
+          placeholder={copy.searchPlaceholder}
+          aria-label={copy.searchAriaLabel}
           className="w-full rounded-full border border-[#26324c] bg-[#141d2e] px-5 py-3.5 text-base text-[#e8edf5] outline-none placeholder:text-[#64748b] focus:border-[#22D3EE]"
         />
         {query.length > 0 && (

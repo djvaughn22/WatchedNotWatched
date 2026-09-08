@@ -6,11 +6,14 @@ import EmailSignup from "./EmailSignup";
 import SearchExperience from "./SearchExperience";
 import TitleCard from "./TitleCard";
 import { useLibrary } from "@/lib/useLocal";
-import { inView, VIEW_LABELS, type LibraryView } from "@/lib/library";
+import { inView, isBook, VIEW_LABELS, type LibraryView } from "@/lib/library";
 import { DECADES } from "@/lib/media/genres";
 import type { SearchResultItem } from "@/lib/media/types";
+import { useMode } from "@/app/ModeProvider";
+import { copyFor, type AppMode } from "@/lib/mode";
 
 const SNAPSHOT_VIEWS: LibraryView[] = ["want_to_watch", "watched", "watch_again", "favorites"];
+const BOOK_SUBJECTS = ["Fiction", "Fantasy", "Mystery", "Romance", "Biography", "History", "Science", "Classics"];
 
 // One shared chip size so every small control on the page matches.
 const CHIP = "rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors";
@@ -33,6 +36,10 @@ function SectionHeader({ title, link, linkLabel }: { title: string; link?: strin
 export function Homepage() {
   const lib = useLibrary();
   const { entries, hydrated } = lib;
+  const { mode } = useMode();
+  const copy = copyFor(mode);
+  const book = mode === "book";
+  const modeEntries = useMemo(() => entries.filter((e) => isBook(e.mediaType) === book), [entries, book]);
 
   return (
     <main className="min-h-screen bg-[#0b1220] text-[#e8edf5]">
@@ -40,86 +47,85 @@ export function Homepage() {
           screen, so the page reads as a single card instead of dark bands. */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <section className="pb-8 pt-10 text-center">
-          {/* The brand, as the two answers the whole site runs on. */}
+          {/* The brand, as the two answers this mode runs on. */}
           <div className="flex items-center justify-center gap-2">
             <span className="rounded-full border border-[#22D3EE] bg-[#22D3EE]/10 px-3 py-1 text-xs font-black text-[#22D3EE]">
-              Watched ✓
+              {copy.statusDone} ✓
             </span>
             <span className="rounded-full border border-[#26324c] px-3 py-1 text-xs font-black text-[#94a3b8]">
-              Not watched
+              {copy.statusNotDone}
             </span>
           </div>
-          <div className="mt-2 flex items-center justify-center gap-2">
-            <span className="rounded-full border border-[#22D3EE] bg-[#22D3EE]/10 px-3 py-1 text-xs font-black text-[#22D3EE]">
-              Read ✓
-            </span>
-            <span className="rounded-full border border-[#26324c] px-3 py-1 text-xs font-black text-[#94a3b8]">
-              Not read
-            </span>
-          </div>
-          <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-5xl">
-            What to watch or read next,
-            <br />
-            based on what you like.
-          </h1>
-          <p className="mt-3 text-sm text-[#94a3b8]">
-            Log what you&apos;ve seen or read. Movie and TV picks change with every rating.
-          </p>
+          <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-5xl">{copy.heroHeading}</h1>
+          <p className="mt-3 text-sm text-[#94a3b8]">{copy.heroSub}</p>
           <div className="mt-6 text-left">
             <SearchExperience autoFocus />
           </div>
         </section>
 
-        <HomePicks lib={lib} />
+        <HomePicks lib={lib} mode={mode} />
 
-        <section className="border-t border-[#26324c] py-6">
-          <SectionHeader title="How many have you seen?" link="/top" linkLabel="Open the board →" />
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <Link href="/top" className={CHIP_ACCENT}>
-              Top 222 of all time
-            </Link>
-            <Link href="/top?type=series" className={CHIP_PLAIN}>
-              Top 222 TV shows
-            </Link>
-            {DECADES.map((d) => (
-              <Link key={d.id} href={`/top?decade=${d.id}`} className={CHIP_PLAIN}>
-                {d.label}
+        {!book && (
+          <section className="border-t border-[#26324c] py-6">
+            <SectionHeader title="How many have you seen?" link="/top" linkLabel="Open the board →" />
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              <Link href="/top" className={CHIP_ACCENT}>
+                Top 222 of all time
               </Link>
-            ))}
-            <Link href="/top" className={CHIP_PLAIN}>
-              By genre →
-            </Link>
-          </div>
-        </section>
+              <Link href="/top?type=series" className={CHIP_PLAIN}>
+                Top 222 TV shows
+              </Link>
+              {DECADES.map((d) => (
+                <Link key={d.id} href={`/top?decade=${d.id}`} className={CHIP_PLAIN}>
+                  {d.label}
+                </Link>
+              ))}
+              <Link href="/top" className={CHIP_PLAIN}>
+                By genre →
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {book && (
+          <section className="border-t border-[#26324c] py-6">
+            <SectionHeader title="Browse by subject" />
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {BOOK_SUBJECTS.map((s) => (
+                <Link key={s} href={`/search?q=${encodeURIComponent(s)}`} className={CHIP_PLAIN}>
+                  {s}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {hydrated && (
           <section className="border-t border-[#26324c] py-6">
-            <SectionHeader title="Your library" link="/library" linkLabel="Open library →" />
-            {entries.length > 0 ? (
+            <SectionHeader title="Your library" link={`/library?type=${book ? "book" : "screen"}`} linkLabel="Open library →" />
+            {modeEntries.length > 0 ? (
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {SNAPSHOT_VIEWS.map((v) => {
-                  const count = entries.filter((e) => inView(e, v)).length;
+                  const count = modeEntries.filter((e) => inView(e, v)).length;
                   return (
-                    <Link key={v} href={`/library?view=${v}`} className={CHIP_PLAIN}>
+                    <Link key={v} href={`/library?view=${v}&type=${book ? "book" : "screen"}`} className={CHIP_PLAIN}>
                       <span className="font-black text-[#e8edf5]">{count}</span> {VIEW_LABELS[v]}
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              <p className="mt-2.5 text-sm text-[#94a3b8]">
-                Search a title, tap <strong className="text-[#e8edf5]">Watched</strong>, <strong className="text-[#e8edf5]">Read</strong>, or save it for later. Your library builds itself.
-              </p>
+              <p className="mt-2.5 text-sm text-[#94a3b8]">{copy.emptyLibraryHint}</p>
             )}
           </section>
         )}
 
-        <Top22Today />
+        <Top22Today mode={mode} />
 
         <EmailSignup />
 
         <p className="border-t border-[#26324c] py-6 text-center text-xs leading-relaxed text-[#64748b]">
-          Saved on this device. Export a backup anytime. No account needed.
+          {copy.savedFootnote}
         </p>
       </div>
     </main>
@@ -128,10 +134,12 @@ export function Homepage() {
 
 // ---- The picks deck --------------------------------------------------------
 // The homepage engine: a hand of titles you haven't decided on yet. With no
-// ratings it deals from the Top 222 boards; once you thumb titles up it deals
-// from /api/recommend seeded by your 👍s (same engine as For You). Any rating
-// — Loved / Liked / Fine / Not for me — or a Prob Not re-deals the hand, so
-// the picks visibly react to every opinion. Shuffle re-deals on demand.
+// ratings it deals from the Top 222 boards (or, in ReadNotRead, Open
+// Library's trending list); once you thumb titles up it deals from
+// /api/recommend seeded by your 👍s (same engine as For You). Any rating —
+// Loved / Liked / Fine / Not for me — or a Prob Not re-deals the hand, so the
+// picks visibly react to every opinion. Shuffle re-deals on demand. The two
+// modes never share a pool, a seed, or a hand.
 
 type Pick = SearchResultItem & { because?: string };
 
@@ -157,38 +165,42 @@ function interleave(a: Pick[], b: Pick[]): Pick[] {
   return out;
 }
 
-function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
+function HomePicks({ lib, mode }: { lib: ReturnType<typeof useLibrary>; mode: AppMode }) {
   const { entries, hydrated, entryFor, mark, take, again, remove } = lib;
+  const book = mode === "book";
+  const copy = copyFor(mode);
   const [pool, setPool] = useState<Pick[]>([]);
   const [personal, setPersonal] = useState(false);
   const [hand, setHand] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const modeEntries = useMemo(() => entries.filter((e) => isBook(e.mediaType) === book), [entries, book]);
+
   // Same seed rule as For You: loved (3) beats liked (2), newest first.
   const seeds = useMemo(() => {
-    const liked = entries.filter((e) => e.myTake === "loved" || e.myTake === "liked");
+    const liked = modeEntries.filter((e) => e.myTake === "loved" || e.myTake === "liked");
     liked.sort((a, b) => (a.myTake === b.myTake ? 0 : a.myTake === "loved" ? -1 : 1));
     return liked
       .slice(0, MAX_SEEDS)
       .map((e) => ({ sourceId: e.sourceId, mediaType: e.mediaType, weight: e.myTake === "loved" ? 3 : 2, title: e.title }));
-  }, [entries]);
+  }, [modeEntries]);
 
   // Every opinion re-deals: any My Take change or a Prob Not, but not a plain
   // Watched / Want to Watch tap — those keep the card in place so you can
   // finish rating it.
   const opinionKey = useMemo(
     () =>
-      entries
+      modeEntries
         .filter((e) => e.myTake || e.status === "prob_not")
         .map((e) => `${e.id}:${e.myTake ?? "prob_not"}`)
         .sort()
         .join("|"),
-    [entries],
+    [modeEntries],
   );
 
-  // Anything already in the library never gets dealt again.
+  // Anything already classified in this mode never gets dealt again.
   const deal = (from: Pick[]) => {
-    const inLibrary = new Set(entries.map((e) => e.id));
+    const inLibrary = new Set(modeEntries.map((e) => e.id));
     setHand(shuffled(from.filter((p) => !inLibrary.has(p.id))).slice(0, HAND_SIZE));
   };
 
@@ -205,6 +217,13 @@ function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
     };
 
     const loadTop = () => {
+      if (book) {
+        fetch(`/api/top?kind=book`, { signal: controller.signal })
+          .then((r) => r.json())
+          .then((data: { items?: Pick[] }) => finish(data.items ?? [], false))
+          .catch(() => setLoading(false));
+        return;
+      }
       const one = (type: "movie" | "series") =>
         fetch(`/api/top?type=${type}`, { signal: controller.signal })
           .then((r) => r.json())
@@ -238,20 +257,20 @@ function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
     return () => controller.abort();
     // Re-deal only when an opinion changes, not on every library tap.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, opinionKey]);
+  }, [hydrated, opinionKey, book]);
 
   if (!hydrated) return null;
-  if (!loading && pool.length === 0) return null; // keyless prod: stay clean
+  if (!loading && pool.length === 0) return null; // keyless prod / no trending data: stay clean
 
   return (
     <section className="border-t border-[#26324c] py-6">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-xs font-black uppercase tracking-widest text-[#94a3b8]">
-          {personal ? "Your picks" : "Picks to start with"}
+          {personal ? "Your picks" : copy.picksEyebrow}
         </h2>
         <div className="flex items-center gap-2">
           {personal && (
-            <Link href="/foryou" className="shrink-0 text-xs font-semibold text-[#22D3EE] hover:underline">
+            <Link href={copy.moreHref} className="shrink-0 text-xs font-semibold text-[#22D3EE] hover:underline">
               More →
             </Link>
           )}
@@ -260,11 +279,7 @@ function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
           </button>
         </div>
       </div>
-      <p className="mt-1 text-xs text-[#64748b]">
-        {personal
-          ? "Built from your 👍s. Rate anything and the deck changes."
-          : "From the Top 222 boards. Rate a few and your picks go personal."}
-      </p>
+      <p className="mt-1 text-xs text-[#64748b]">{personal ? copy.picksPersonalCopy : copy.picksColdStartCopy}</p>
 
       {loading && hand.length === 0 ? (
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -293,15 +308,25 @@ function HomePicks({ lib }: { lib: ReturnType<typeof useLibrary> }) {
   );
 }
 
-// Today's Top 22 movies and TV shows, straight from /api/top (same board as
-// /top, all time). Poster strips scroll sideways; each poster opens its title
-// page. Hidden entirely if the lists don't load — the homepage stays clean.
-function Top22Today() {
+// Today's Top 22, straight from /api/top (same board as /top for movies/TV;
+// Open Library's trending list for books). Poster strips scroll sideways;
+// each poster opens its title page. Hidden entirely if nothing loads.
+function Top22Today({ mode }: { mode: AppMode }) {
+  const book = mode === "book";
+  const copy = copyFor(mode);
   const [movies, setMovies] = useState<SearchResultItem[]>([]);
   const [shows, setShows] = useState<SearchResultItem[]>([]);
+  const [books, setBooks] = useState<SearchResultItem[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
+    if (book) {
+      fetch(`/api/top?kind=book`, { signal: controller.signal })
+        .then((r) => r.json())
+        .then((data: { items?: SearchResultItem[] }) => setBooks(data.items ?? []))
+        .catch(() => {});
+      return () => controller.abort();
+    }
     const load = (type: "movie" | "series", set: (items: SearchResultItem[]) => void) =>
       fetch(`/api/top?type=${type}`, { signal: controller.signal })
         .then((r) => r.json())
@@ -310,28 +335,47 @@ function Top22Today() {
     load("movie", setMovies);
     load("series", setShows);
     return () => controller.abort();
-  }, []);
+  }, [book]);
+
+  if (book) {
+    if (books.length === 0) return null;
+    return (
+      <section className="border-t border-[#26324c] py-6">
+        <PosterStrip label={copy.trendingLabel} href="/search" linkLabel="Search books →" items={books.slice(0, 22)} />
+      </section>
+    );
+  }
 
   if (movies.length === 0 && shows.length === 0) return null;
 
   return (
     <section className="border-t border-[#26324c] py-6">
       {movies.length > 0 && (
-        <PosterStrip label="Top 22 movies today" href="/top" items={movies} />
+        <PosterStrip label="Top 22 movies today" href="/top" linkLabel="Open the board →" items={movies} />
       )}
       {shows.length > 0 && (
         <div className={movies.length > 0 ? "mt-6" : undefined}>
-          <PosterStrip label="Top 22 TV shows today" href="/top?type=series" items={shows} />
+          <PosterStrip label="Top 22 TV shows today" href="/top?type=series" linkLabel="Open the board →" items={shows} />
         </div>
       )}
     </section>
   );
 }
 
-function PosterStrip({ label, href, items }: { label: string; href: string; items: SearchResultItem[] }) {
+function PosterStrip({
+  label,
+  href,
+  linkLabel,
+  items,
+}: {
+  label: string;
+  href: string;
+  linkLabel: string;
+  items: SearchResultItem[];
+}) {
   return (
     <div>
-      <SectionHeader title={label} link={href} linkLabel="Open the board →" />
+      <SectionHeader title={label} link={href} linkLabel={linkLabel} />
       <ul className="-mx-4 mt-2.5 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
         {items.map((it, i) => (
           <li key={it.id} className="w-24 shrink-0 sm:w-28">

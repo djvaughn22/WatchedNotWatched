@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import type { SearchResultItem } from "@/lib/media/types";
+import BookCover from "./BookCover";
 import {
   AGAIN_LABELS,
   MY_TAKE_LABELS,
@@ -62,12 +63,14 @@ export default function TitleCard({
       style={{ borderColor }}
     >
       <Link href={detailHref} className="relative block aspect-[2/3] bg-[#0b1220]">
-        {item.posterUrl ? (
+        {item.mediaType === "book" ? (
+          <BookCover title={item.title} author={item.creators?.[0]} coverUrl={item.posterUrl} />
+        ) : item.posterUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.posterUrl} alt={`${item.title} ${item.mediaType === "book" ? "cover" : "poster"}`} className="h-full w-full object-cover" loading="lazy" />
+          <img src={item.posterUrl} alt={`${item.title} poster`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center">
-            <span className="text-3xl" aria-hidden>{item.mediaType === "book" ? "📚" : "🎬"}</span>
+            <span className="text-3xl" aria-hidden>🎬</span>
             <span className="text-xs font-semibold leading-snug text-[#94a3b8]">{item.title}</span>
           </div>
         )}

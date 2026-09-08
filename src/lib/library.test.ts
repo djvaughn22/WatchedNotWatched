@@ -61,6 +61,34 @@ describe("book language", () => {
   });
 });
 
+describe("book and movie state stay independent", () => {
+  const bookRef = (id: string, title = "A Book"): TitleRef => ({
+    id,
+    source: "openlibrary",
+    sourceId: id.split(":")[1],
+    mediaType: "book",
+    title,
+  });
+
+  it("namespaced ids keep a book and a movie with the same raw id from colliding", () => {
+    let store = setStatus(emptyStore(), ref("tmdb:27482", "The Hobbit (movie)"), "watched");
+    store = setStatus(store, bookRef("openlibrary:27482", "The Hobbit (book)"), "want_to_watch");
+    expect(store.entries).toHaveLength(2);
+    expect(getEntry(store, "tmdb:27482")?.mediaType).toBe("movie");
+    expect(getEntry(store, "openlibrary:27482")?.mediaType).toBe("book");
+  });
+
+  it("marking a book Read and rating it never touches an unrelated movie entry", () => {
+    let store = setStatus(emptyStore(), ref("tmdb:1", "A Movie"), "watched");
+    store = setMyTake(store, "tmdb:1", "liked");
+    store = setStatus(store, bookRef("openlibrary:OL1W", "A Book"), "watched");
+    store = setMyTake(store, "openlibrary:OL1W", "loved");
+
+    expect(getEntry(store, "tmdb:1")).toMatchObject({ status: "watched", myTake: "liked" });
+    expect(getEntry(store, "openlibrary:OL1W")).toMatchObject({ status: "watched", myTake: "loved" });
+  });
+});
+
 describe("verdicts", () => {
   it("sets and clears My Take and Again", () => {
     let store = setStatus(emptyStore(), ref("tmdb:1"), "watched");

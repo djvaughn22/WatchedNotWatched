@@ -58,10 +58,11 @@ function sortEntries(entries: LibraryEntry[], sort: SortKey): LibraryEntry[] {
 export default function LibraryClient() {
   const params = useSearchParams();
   const initialView = (params.get("view") as LibraryView) || "all";
+  const initialType = params.get("type") === "book" ? "book" : "all";
   const { entries, hydrated, mark, take, again, removeMany, restore } = useLibrary();
 
   const [view, setView] = useState<LibraryView>(VIEWS.includes(initialView) ? initialView : "all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState(initialType);
   const [genreFilter, setGenreFilter] = useState("all");
   const [yearFilter, setYearFilter] = useState("all");
   const [takeFilter, setTakeFilter] = useState("all");

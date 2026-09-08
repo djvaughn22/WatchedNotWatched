@@ -4,6 +4,7 @@ import "./globals.css";
 import OpenMirrorFooter from "./OpenMirrorFooter";
 import OpenMirrorNav from "./OpenMirrorNav";
 import ProductNav from "./components/ProductNav";
+import { ModeProvider } from "./ModeProvider";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -31,21 +32,23 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <OpenMirrorNav
-          site="WatchedNotWatched.com"
-          accent="#22D3EE"
-          links={[
-            { emoji: "🎬", name: "Home", href: "/" },
-            { emoji: "🔎", name: "Search", href: "/search" },
-            { emoji: "🏆", name: "Top 222", href: "/top" },
-            { emoji: "🍿", name: "For You", href: "/foryou" },
-            { emoji: "📚", name: "My Library", href: "/library" },
-            { emoji: "ℹ️", name: "About WatchedNotWatched", href: "/about" },
-          ]}
-        />
-        <ProductNav />
-        {children}
-        <OpenMirrorFooter />
+        <ModeProvider>
+          <OpenMirrorNav
+            site="WatchedNotWatched.com"
+            accent="#22D3EE"
+            links={[
+              { emoji: "🎬", name: "Home", href: "/" },
+              { emoji: "🔎", name: "Search", href: "/search" },
+              { emoji: "🏆", name: "Top 222", href: "/top" },
+              { emoji: "🍿", name: "For You", href: "/foryou" },
+              { emoji: "📚", name: "My Library", href: "/library" },
+              { emoji: "ℹ️", name: "About WatchedNotWatched", href: "/about" },
+            ]}
+          />
+          <ProductNav />
+          {children}
+          <OpenMirrorFooter />
+        </ModeProvider>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-KCQDDZQ17M"
           strategy="afterInteractive"
