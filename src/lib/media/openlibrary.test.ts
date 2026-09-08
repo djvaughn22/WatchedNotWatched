@@ -1,12 +1,20 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {
+  checkBookAvailability,
   createOpenLibraryAdapter,
+  getTitleCore,
+  getTitleExtended,
   isbnCoverUrl,
   normalizeOpenLibrarySearchDoc,
+  OpenLibraryNotFoundError,
   relatedByAuthor,
   relatedBySubject,
   trendingBooks,
 } from "./openlibrary";
+
+function mockRes(status: number, body: unknown): Response {
+  return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
+}
 
 describe("normalizeOpenLibrarySearchDoc", () => {
   it("turns a work into the shared book card shape", () => {
@@ -175,5 +183,109 @@ describe("trendingBooks", () => {
         dataStatus: "live",
       },
     ]);
+  });
+});
+
+// Regression coverage for the confirmed first-click bug: a transient Open
+// Library failure must never be indistinguishable from "this book does not
+// exist", and a valid work must resolve even through a merge redirect.
+describe("getTitleCore reliability", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("retries once on a transient failure and still returns the core shell", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("timeout"))
+      .mockResolvedValueOnce(mockRes(200, { key: "/works/OL1W", title: "Foundation", covers: [123] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const title = await getTitleCore("OL1W");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(title.title).toBe("Foundation");
+    expect(title.id).toBe("openlibrary:OL1W");
+  });
+
+  it("throws OpenLibraryNotFoundError on a genuine 404 and does not retry", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockRes(404, {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getTitleCore("OL404W")).rejects.toBeInstanceOf(OpenLibraryNotFoundError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces a generic error (not not-found) when both attempts fail transiently", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("still down"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getTitleCore("OL1W")).rejects.not.toBeInstanceOf(OpenLibraryNotFoundError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("follows a merge redirect stub and resolves the CANONICAL work id, not the stale one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockRes(200, { key: "/works/OLSTALEW", type: { key: "/type/redirect" }, location: "/works/OLCANONW" }))
+      .mockResolvedValueOnce(mockRes(200, { key: "/works/OLCANONW", title: "Dune", covers: [999] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const title = await getTitleCore("OLSTALEW");
+    expect(title.title).toBe("Dune");
+    expect(title.id).toBe("openlibrary:OLCANONW");
+    expect(title.sourceId).toBe("OLCANONW");
+    expect(title.book?.workKey).toBe("OLCANONW");
+  });
+});
+
+describe("getTitleExtended fault isolation", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("never throws even when every enrichment sub-call fails, and returns empty/null patches", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/works/OL1W.json")) {
+          return Promise.resolve(
+            mockRes(200, { key: "/works/OL1W", title: "Foundation", authors: [{ author: { key: "/authors/OL1A" } }] }),
+          );
+        }
+        return Promise.reject(new Error("down"));
+      }),
+    );
+
+    const patch = await getTitleExtended("OL1W");
+    expect(patch.creators).toEqual([]);
+    expect(patch.book).toEqual({});
+    expect(patch.availability).toBeNull();
+  });
+});
+
+describe("checkBookAvailability", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("maps a currently-borrowable book correctly", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        mockRes(200, { OL1W: { status: "open", is_readable: false, is_lendable: true, available_to_borrow: true } }),
+      ),
+    );
+    const availability = await checkBookAvailability("OL1W");
+    expect(availability).toEqual({ readable: false, borrowable: true, waitlisted: false, url: "https://openlibrary.org/works/OL1W" });
+  });
+
+  it("never claims availability when Open Library returns an error entry", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockRes(200, { OL1W: { status: "error", error_message: "not found" } })));
+    expect(await checkBookAvailability("OL1W")).toBeNull();
+  });
+
+  it("returns null (never a false positive) on a network failure", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
+    expect(await checkBookAvailability("OL1W")).toBeNull();
   });
 });

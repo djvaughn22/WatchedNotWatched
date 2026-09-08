@@ -6,7 +6,9 @@
 // card — rate it in two more taps or just keep going.
 
 import Link from "next/link";
+import { useEffect } from "react";
 import type { SearchResultItem } from "@/lib/media/types";
+import { writeTitleShell } from "@/lib/titleShellCache";
 import BookCover from "./BookCover";
 import {
   AGAIN_LABELS,
@@ -55,6 +57,13 @@ export default function TitleCard({
 }) {
   const status = entry?.status;
   const detailHref = `/title/${item.source}/${item.sourceId}?mediaType=${item.mediaType}`;
+
+  // So the detail page can paint instantly on first click instead of a
+  // loading skeleton — see lib/titleShellCache.ts. Pure optimization: a
+  // direct link with no prior card view just finds nothing here.
+  useEffect(() => {
+    writeTitleShell(item);
+  }, [item]);
   const borderColor = status ? STATUS_COLORS[status] : "#26324c";
 
   return (

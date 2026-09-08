@@ -97,6 +97,12 @@ export function Homepage() {
                 </Link>
               ))}
             </div>
+            <p className="mt-3 text-xs text-[#64748b]">
+              Building a readiness shelf?{" "}
+              <a href="https://pleasebeready.com/books" className="font-semibold text-[#22D3EE] hover:underline">
+                Preparedness reading on PleaseBeReady →
+              </a>
+            </p>
           </section>
         )}
 

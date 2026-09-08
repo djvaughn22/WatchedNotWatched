@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { BookAvailability, TitleExtendedPatch } from "@/lib/media/openlibrary";
+import { isbnCoverUrl } from "@/lib/media/openlibrary";
 import type { MediaTitle, ProviderAvailability, SearchResultItem, TrailerReference } from "@/lib/media/types";
+import type { TitleResponse, TitleExtendedResponse } from "@/app/api/title/route";
 import { buildHandoff, PROVIDERS } from "@/lib/providers";
 import { useLibrary } from "@/lib/useLocal";
 import {
@@ -11,9 +14,11 @@ import {
   type MyTake,
   type TitleRef,
 } from "@/lib/library";
+import { readTitleShell, type TitleShell } from "@/lib/titleShellCache";
 import TitleCard from "@/app/components/TitleCard";
 import TriageButtons from "@/app/components/TriageButtons";
 import BookCover from "@/app/components/BookCover";
+import BookActions from "@/app/components/BookActions";
 
 const TAKES: MyTake[] = ["loved", "liked", "fine", "not_for_me"];
 const AGAINS: Again[] = ["yes", "maybe", "no"];
@@ -37,49 +42,135 @@ function groupProviders(availability: ProviderAvailability[]): Array<[string, Pr
   return MONETIZATION_ORDER.filter((k) => groups.has(k)).map((k) => [k, groups.get(k)!]);
 }
 
+/** A shell seen in a card a moment ago, reshaped as a partial MediaTitle so
+ * the detail page can render its real layout immediately instead of a
+ * skeleton — replaced the instant the real fetch resolves. */
+function shellToPartialTitle(shell: TitleShell): MediaTitle {
+  return {
+    id: shell.id,
+    source: shell.source,
+    sourceId: shell.sourceId,
+    mediaType: shell.mediaType as MediaTitle["mediaType"],
+    title: shell.title,
+    creators: shell.creators,
+    releaseYear: shell.releaseYear,
+    posterUrl: shell.posterUrl,
+    genres: shell.genres,
+    dataStatus: "cached",
+    book: shell.mediaType === "book" ? { workKey: shell.sourceId } : undefined,
+  };
+}
+
+type CoreStatus = "loading" | "done" | "not_found" | "unavailable";
+
 export default function TitleDetailClient({ source, id, mediaType }: { source: string; id: string; mediaType: string }) {
-  const [title, setTitle] = useState<MediaTitle | null>(null);
-  const [status, setStatus] = useState<"loading" | "error" | "done">("loading");
+  const [title, setTitle] = useState<MediaTitle | null>(() => {
+    const shell = readTitleShell(`${source}:${id}`);
+    return shell ? shellToPartialTitle(shell) : null;
+  });
+  const [coreStatus, setCoreStatus] = useState<CoreStatus>("loading");
+  const [availability, setAvailability] = useState<BookAvailability | null>(null);
   const [fallbackTrailer, setFallbackTrailer] = useState<{ trailer: TrailerReference | null; searchUrl: string } | null>(null);
   const [similar, setSimilar] = useState<{ items: SearchResultItem[]; supported: boolean } | null>(null);
   const [shareMsg, setShareMsg] = useState("");
   const { entryFor, mark, take, again, remove, hydrated } = useLibrary();
 
-  useEffect(() => {
+  const loadCore = () => {
     let alive = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStatus("loading");
+    setCoreStatus("loading");
     fetch(`/api/title?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(mediaType)}`)
-      .then((r) => r.json())
-      .then((data: MediaTitle | null) => {
+      .then((r) => r.json() as Promise<TitleResponse>)
+      .then((data) => {
         if (!alive) return;
-        if (!data) { setStatus("error"); return; }
-        setTitle(data);
-        setStatus("done");
-        if (data.mediaType !== "book" && !data.trailer) {
-          fetch(`/api/trailer?title=${encodeURIComponent(data.title)}&year=${data.releaseYear ?? ""}`)
+        if (data.status === "not_found") {
+          setCoreStatus("not_found");
+          return;
+        }
+        if (data.status === "unavailable") {
+          // A shell is already rendering the essentials — a transient
+          // enrichment hiccup is not the same failure as having nothing.
+          setCoreStatus(title ? "done" : "unavailable");
+          return;
+        }
+        setTitle(data.title);
+        setCoreStatus("done");
+
+        if (data.title.mediaType !== "book" && !data.title.trailer) {
+          fetch(`/api/trailer?title=${encodeURIComponent(data.title.title)}&year=${data.title.releaseYear ?? ""}`)
             .then((r) => r.json())
             .then((t) => alive && setFallbackTrailer(t))
             .catch(() => {});
         }
-        fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.mediaType)}`)
+        fetch(`/api/similar?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}&mediaType=${encodeURIComponent(data.title.mediaType)}`)
           .then((r) => r.json())
           .then((s) => alive && setSimilar(s))
           .catch(() => {});
+
+        if (data.title.mediaType === "book") {
+          fetch(`/api/title?source=openlibrary&id=${encodeURIComponent(id)}&tier=extended`)
+            .then((r) => r.json() as Promise<TitleExtendedResponse>)
+            .then((ext) => {
+              if (!alive || ext.status !== "ok") return;
+              const patch: TitleExtendedPatch = ext.patch;
+              setAvailability(patch.availability);
+              setTitle((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      creators: patch.creators.length > 0 ? patch.creators : prev.creators,
+                      // prev.book.workKey is already the canonical id (getTitleCore
+                      // resolves merge redirects); patch.book never carries a
+                      // workKey, so this can't clobber it back to the stale id.
+                      // The `id` fallback only matters for the type checker —
+                      // prev.book is always set by the time extended data arrives.
+                      book: { workKey: prev.book?.workKey ?? id, ...prev.book, ...patch.book },
+                      posterUrl:
+                        prev.posterUrl ?? (patch.book.isbn ? isbnCoverUrl(patch.book.isbn, "L") : undefined),
+                    }
+                  : prev,
+              );
+            })
+            .catch(() => {
+              /* extended enrichment failing must never take down the page */
+            });
+        }
       })
-      .catch(() => alive && setStatus("error"));
-    return () => { alive = false; };
+      .catch(() => alive && setCoreStatus(title ? "done" : "unavailable"));
+    return () => {
+      alive = false;
+    };
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    return loadCore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, id, mediaType]);
 
-  if (status === "loading") return <div className="mx-auto max-w-3xl px-4 py-10"><div className="h-64 animate-pulse rounded-2xl bg-[#141d2e]" /></div>;
-  if (status === "error" || !title) {
+  if (coreStatus === "loading" && !title) {
+    return <div className="mx-auto max-w-3xl px-4 py-10"><div className="h-64 animate-pulse rounded-2xl bg-[#141d2e]" /></div>;
+  }
+
+  if (coreStatus === "not_found") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <p className="text-[#e8edf5]">We couldn’t load that title.</p>
+        <p className="text-[#e8edf5]">This title isn&apos;t in Open Library.</p>
         <a href="/search" className="mt-4 inline-block rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-bold text-[#06131a]">Back to search</a>
       </div>
     );
   }
+
+  if (coreStatus === "unavailable" && !title) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <p className="text-[#e8edf5]">This is taking longer than it should.</p>
+        <p className="mt-1 text-sm text-[#94a3b8]">The source is slow to respond right now — this usually works on retry.</p>
+        <button onClick={loadCore} className="mt-4 rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-bold text-[#06131a]">Retry</button>
+      </div>
+    );
+  }
+
+  if (!title) return null;
 
   const entry = hydrated ? entryFor(title.id) : undefined;
   const ref: TitleRef = {
@@ -209,10 +300,19 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
         <p className="mt-6 text-sm leading-relaxed text-[#94a3b8]">{title.synopsis}</p>
       )}
 
+      {coreStatus === "unavailable" && (
+        <div className="mt-4 rounded-xl border border-[#26324c] bg-[#141d2e] p-4 text-center">
+          <p className="text-sm text-[#94a3b8]">Some details are taking longer to load.</p>
+          <button onClick={loadCore} className="mt-2 rounded-full border border-[#22D3EE] px-3 py-1.5 text-xs font-bold text-[#22D3EE]">Retry</button>
+        </div>
+      )}
+
+      {book && <BookActions book={{ title: title.title, creators: title.creators, isbn: title.book?.isbn }} availability={availability} />}
+
       {!book && (
         <>
           {/* Where to watch */}
-      <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
+          <section className="mt-6 rounded-2xl border border-[#26324c] bg-[#141d2e] p-5">
         <h2 className="text-sm font-bold text-[#e8edf5]">Where to watch</h2>
         {title.availability && title.availability.length > 0 ? (
           <>
