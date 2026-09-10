@@ -78,7 +78,7 @@ export function buildAmazonBookLink(book: BookIdentity): RetailerLink {
       return { label: "Buy on Amazon", url: withTag(`https://www.amazon.com/dp/${asin}`), kind: "product" };
     }
     return {
-      label: "Buy on Amazon",
+      label: "Search Amazon",
       url: withTag(`https://www.amazon.com/s?k=${encodeURIComponent(book.isbn)}&i=stripbooks`),
       kind: "search",
     };

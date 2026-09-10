@@ -68,7 +68,26 @@ describe("library-first action order and disclosure", () => {
   });
 
   it("Audible is always framed as a search, never a claimed edition", () => {
-    expect(bookActions).toContain("Listen on Audible (search)");
+    expect(bookActions).toContain("{audible.label}"); // "Search Audible" — see bookRetailers
+    expect(bookActions).not.toMatch(/Listen now|Listen on Audible/);
+  });
+
+  it("no storefront link can render without a configured storefront URL", () => {
+    expect(bookActions).toContain("{storefront && (");
+    expect(bookActions).not.toMatch(/amazon\.com\/shop/); // never a hardcoded store
+  });
+
+  it("a visitor with no library saved still gets library discovery, not a dead end", () => {
+    const setupBranch = bookActions.slice(bookActions.indexOf("Set up my library"));
+    expect(bookActions).toContain("OVERDRIVE_FIND_LIBRARY_URL");
+    expect(bookActions).toContain("LIBBY_APP_URL");
+    expect(setupBranch.length).toBeGreaterThan(0);
+  });
+
+  it("a saved library offers both Change and Remove, and Remove clears only the saved library", () => {
+    expect(bookActions).toContain("Change my library");
+    expect(bookActions).toContain("Remove my library");
+    expect(bookActions).toContain("clearReaderLibrary()");
   });
 
   it("the required Amazon disclosure renders on the page", () => {

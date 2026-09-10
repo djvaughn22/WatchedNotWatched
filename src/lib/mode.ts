@@ -12,6 +12,15 @@ export function parseMode(value: unknown): AppMode | null {
   return value === "screen" || value === "book" ? value : null;
 }
 
+/** Resolve the mode a URL implies. An explicit `?mode=` wins; failing that, a
+ * book detail link (`?mediaType=book`) counts as book mode, so a reader
+ * arriving from a shared link or a sibling site lands in ReadNotRead instead
+ * of a book page wearing WatchedNotWatched chrome. Movie/TV links are left
+ * alone — they carry no mode of their own. */
+export function modeFromSearch(search: URLSearchParams): AppMode | null {
+  return parseMode(search.get(MODE_QUERY_PARAM)) ?? (search.get("mediaType") === "book" ? "book" : null);
+}
+
 export interface ModeCopy {
   /** Site brand shown in hero/product surfaces (nav brand stays "WatchedNotWatched.com" — synced chrome). */
   brand: string;

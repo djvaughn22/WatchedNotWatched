@@ -7,7 +7,7 @@
 // "screen" so existing users see the unchanged product until they switch.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { DEFAULT_MODE, MODE_QUERY_PARAM, MODE_STORAGE_KEY, parseMode, type AppMode } from "@/lib/mode";
+import { DEFAULT_MODE, MODE_QUERY_PARAM, MODE_STORAGE_KEY, modeFromSearch, parseMode, type AppMode } from "@/lib/mode";
 
 const ModeContext = createContext<{ mode: AppMode; setMode: (m: AppMode) => void } | null>(null);
 
@@ -30,7 +30,7 @@ export function ModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<AppMode>(DEFAULT_MODE);
 
   useEffect(() => {
-    const fromUrl = parseMode(new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM));
+    const fromUrl = modeFromSearch(new URLSearchParams(window.location.search));
     const initial = fromUrl ?? readStoredMode();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setModeState(initial);
@@ -44,7 +44,7 @@ export function ModeProvider({ children }: { children: React.ReactNode }) {
     }
 
     const onPopState = () => {
-      const next = parseMode(new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM)) ?? DEFAULT_MODE;
+      const next = modeFromSearch(new URLSearchParams(window.location.search)) ?? DEFAULT_MODE;
       setModeState(next);
       try {
         window.localStorage.setItem(MODE_STORAGE_KEY, next);

@@ -4,7 +4,7 @@
 // 1. Read free / Borrow (only when Open Library's own availability says so)
 // 2. Find at my library (Libby/OverDrive, device-local setup, no credentials)
 // 3. Buy on Amazon
-// 4. Listen on Audible
+// 4. Search Audible (never "listen now" — no edition is ever verified)
 // Free/library options get the strongest visual weight; Amazon/Audible read
 // as clearly commercial, secondary alternatives — never "required."
 
@@ -148,9 +148,14 @@ function LibrarySetupCard({ book }: { book: { isbn?: string; title: string; crea
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
-              <button onClick={() => setEditing(true)} className="mt-3 text-xs font-semibold text-[#64748b] hover:text-[#94a3b8]">
-                Change my library
-              </button>
+              <div className="mt-3 flex gap-4">
+                <button onClick={() => setEditing(true)} className="text-xs font-semibold text-[#64748b] hover:text-[#94a3b8]">
+                  Change my library
+                </button>
+                <button onClick={reset} className="text-xs font-semibold text-[#64748b] hover:text-[#94a3b8]">
+                  Remove my library
+                </button>
+              </div>
             </>
           );
         })()
@@ -241,7 +246,7 @@ export default function BookActions({
           onClick={() => outboundClick("amazon")}
           className={`${SECONDARY_BTN} mt-2`}
         >
-          <span>🛒 {amazon.label}{amazon.kind === "search" ? " (search)" : ""}</span>
+          <span>🛒 {amazon.label}</span>
           <span>→</span>
         </a>
         {storefront && (
@@ -263,7 +268,7 @@ export default function BookActions({
           onClick={() => outboundClick("audible")}
           className={`${SECONDARY_BTN} mt-2`}
         >
-          <span>🎧 Listen on Audible (search)</span>
+          <span>🎧 {audible.label}</span>
           <span>→</span>
         </a>
         <p className="mt-3 text-[10px] leading-relaxed text-[#64748b]">{AMAZON_DISCLOSURE}</p>

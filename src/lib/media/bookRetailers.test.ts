@@ -26,6 +26,12 @@ describe("buildAmazonBookLink", () => {
     expect(link.url).toContain("amazon.com/s?k=");
   });
 
+  it("only says 'Buy' for a real product page — every search is labeled as a search", () => {
+    expect(buildAmazonBookLink({ title: "The Hobbit", isbn: "9780547928227" }).label).toBe("Buy on Amazon");
+    expect(buildAmazonBookLink({ title: "Some Book", isbn: "not-a-real-isbn" }).label).toBe("Search Amazon");
+    expect(buildAmazonBookLink({ title: "Dune", creators: ["Frank Herbert"] }).label).toBe("Search Amazon");
+  });
+
   it("falls back to a title+author search with no ISBN", () => {
     const link = buildAmazonBookLink({ title: "Dune", creators: ["Frank Herbert"] });
     expect(link.kind).toBe("search");
@@ -78,6 +84,16 @@ describe("buildAudibleLink", () => {
     const link = buildAudibleLink({ title: "Man's Search for Meaning", creators: ["Viktor E. Frankl"] });
     expect(link.kind).toBe("search");
     expect(link.url).toContain("audible.com/search?keywords=");
+  });
+
+  it("searches on the exact title AND author, so the results are the right book", () => {
+    const link = buildAudibleLink({ title: "Man's Search for Meaning", creators: ["Viktor E. Frankl"] });
+    const keywords = new URL(link.url).searchParams.get("keywords");
+    expect(keywords).toBe("Man's Search for Meaning Viktor E. Frankl");
+  });
+
+  it("never promises listening — the label says search, because no audiobook edition is verified", () => {
+    expect(buildAudibleLink({ title: "Dune" }).label).toBe("Search Audible");
   });
 });
 
