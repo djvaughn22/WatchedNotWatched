@@ -102,3 +102,9 @@ describe("library-first action order and disclosure", () => {
     expect(bookActions).toMatch(/never ask for your library card number, PIN, password/i);
   });
 });
+
+describe("tab title", () => {
+  it("names the tab after the loaded title, not the generic 'Title details'", () => {
+    expect(client).toContain("document.title = `${loadedName} | WatchedNotWatched`");
+  });
+});

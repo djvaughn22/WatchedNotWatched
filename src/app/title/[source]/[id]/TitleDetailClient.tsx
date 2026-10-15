@@ -147,6 +147,13 @@ export default function TitleDetailClient({ source, id, mediaType }: { source: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, id, mediaType]);
 
+  // The server only knows "Title details"; once the title loads, name the tab
+  // and history entry after it (same template as the layout's metadata).
+  const loadedName = title?.title;
+  useEffect(() => {
+    if (loadedName) document.title = `${loadedName} | WatchedNotWatched`;
+  }, [loadedName]);
+
   if (coreStatus === "loading" && !title) {
     return <div className="mx-auto max-w-3xl px-4 py-10"><div className="h-64 animate-pulse rounded-2xl bg-[#141d2e]" /></div>;
   }
