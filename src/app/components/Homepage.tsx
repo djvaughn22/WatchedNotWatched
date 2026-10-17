@@ -47,15 +47,13 @@ export function Homepage() {
           screen, so the page reads as a single card instead of dark bands. */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <section className="pb-8 pt-10 text-center">
-          {/* The brand, as the two answers this mode runs on. */}
-          <div className="flex items-center justify-center gap-2">
-            <span className="rounded-full border border-[#22D3EE] bg-[#22D3EE]/10 px-3 py-1 text-xs font-black text-[#22D3EE]">
-              {copy.statusDone} ✓
-            </span>
-            <span className="rounded-full border border-[#26324c] px-3 py-1 text-xs font-black text-[#94a3b8]">
-              {copy.statusNotDone}
-            </span>
-          </div>
+          {/* The brand, as the two answers this mode runs on. Plain text, not
+              pills: pills on this page are links, and these did nothing. */}
+          <p className="text-xs font-black uppercase tracking-widest text-[#94a3b8]">
+            <span className="text-[#22D3EE]">{copy.statusDone} ✓</span>
+            <span aria-hidden="true"> · </span>
+            {copy.statusNotDone}
+          </p>
           <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-5xl">{copy.heroHeading}</h1>
           <p className="mt-3 text-sm text-[#94a3b8]">{copy.heroSub}</p>
           <div className="mt-6 text-left">
