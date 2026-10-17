@@ -316,8 +316,8 @@ export default function ForYouClient() {
             <div className="rounded-2xl border border-[#26324c] bg-[#141d2e] px-4 py-3">
               <p className="text-sm font-bold text-[#e8edf5]">These are standard picks.</p>
               <p className="mt-0.5 text-xs text-[#94a3b8]">
-                Personal explanations, content guides, and smarter matching are part of the upcoming paid add-on. Your
-                lists and these picks stay free.
+                They&apos;re matched to the titles you&apos;ve rated. Rating more titles makes them a better
+                match.
               </p>
             </div>
           )}

@@ -37,7 +37,7 @@ function ReadFreeCard({ availability }: { availability: BookAvailability }) {
   if (availability.readable) {
     return (
       <div className={CARD}>
-        <p className="text-xs font-black uppercase tracking-wide text-[#22D3EE]">Read free</p>
+        <p className="text-xs font-black uppercase tracking-wide text-[#22D3EE]">Read online</p>
         <a
           href={availability.url}
           target="_blank"
@@ -45,7 +45,7 @@ function ReadFreeCard({ availability }: { availability: BookAvailability }) {
           onClick={() => outboundClick("read_free")}
           className={`${PRIMARY_BTN} mt-2`}
         >
-          <span>📖 Read free on Open Library</span>
+          <span>📖 Read on Open Library</span>
           <span>→</span>
         </a>
       </div>
@@ -54,7 +54,7 @@ function ReadFreeCard({ availability }: { availability: BookAvailability }) {
   if (availability.borrowable || availability.waitlisted) {
     return (
       <div className={CARD}>
-        <p className="text-xs font-black uppercase tracking-wide text-[#22D3EE]">Borrow free</p>
+        <p className="text-xs font-black uppercase tracking-wide text-[#22D3EE]">Borrow</p>
         <a
           href={availability.url}
           target="_blank"
@@ -162,7 +162,7 @@ function LibrarySetupCard({ book }: { book: { isbn?: string; title: string; crea
       ) : (
         <>
           <p className="mt-2 text-sm text-[#94a3b8]">
-            Libby is the free app for borrowing ebooks and audiobooks from your public library. Find your library once,
+            Libby is the app for borrowing ebooks and audiobooks from your public library. Find your library once,
             and every book page can search it directly.
           </p>
           <a
