@@ -17,7 +17,11 @@ export default function LegalPage() {
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
         <h1 className="text-2xl font-black text-[#e8edf5]">Privacy, Terms &amp; Disclaimer</h1>
         <p className="mt-2 text-sm text-[#94a3b8]">
-          These are initial product documents for an in-development app — not a substitute for legal review.
+          WatchedNotWatched is an Open Mirror LLC project. The{" "}
+          <a href="https://openmirrorllc.com/disclaimer" className="text-[#22D3EE] hover:underline">
+            full Open Mirror disclaimer
+          </a>{" "}
+          also applies.
         </p>
 
         <Section title="Content &amp; Availability Disclaimer">
@@ -29,11 +33,12 @@ export default function LegalPage() {
 
         <Section title="Privacy">
           <p>Your library, recent searches, and settings are stored locally on your device. There is no account, and we do not collect streaming-service credentials.</p>
-          <p>Searches you run are sent to our server to query a metadata provider; we do not tie them to a personal profile. You can clear recent searches and remove titles at any time. Export your library whenever you want a backup.</p>
+          <p>Searches you run are sent to our server to look up titles from a metadata provider. For You sends the titles and preferences it uses to our server to find suggestions, and an AI service may rank them and write the notes on each card. We do not tie these requests to a personal profile. You can clear recent searches and remove titles at any time. Export your library whenever you want a backup.</p>
+          <p>The site uses Google Analytics to count visits and see how features are used, including what people search for.</p>
         </Section>
 
         <Section title="Terms">
-          <p>WatchedNotWatched is provided “as is” during development. You are responsible for using your own legal access to any streaming service.</p>
+          <p>WatchedNotWatched is provided “as is.” You are responsible for using your own legal access to any streaming service.</p>
         </Section>
       </div>
     </main>

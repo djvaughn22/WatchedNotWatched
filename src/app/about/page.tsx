@@ -29,6 +29,14 @@ export default function AboutPage() {
           No account. Your library is saved on this device. Export a backup anytime.
         </p>
 
+        <p className="mt-6 text-[15px] leading-relaxed text-[#94a3b8]">
+          WatchedNotWatched is an{" "}
+          <a href="https://openmirrorllc.com" className="text-[#22D3EE] hover:underline">
+            Open Mirror LLC
+          </a>{" "}
+          project.
+        </p>
+
         {/* The footer's Contact and Disclaimer links land on these two
             sections (family standard, 2026-08-02). */}
         <section id="contact" className="mt-8 scroll-mt-24">
@@ -48,10 +56,9 @@ export default function AboutPage() {
         <section id="disclaimer" className="mt-8 scroll-mt-24">
           <h2 className="text-lg font-bold text-[#e8edf5]">Disclaimer</h2>
           <p className="mt-2 text-[15px] leading-relaxed text-[#94a3b8]">
-            Open Mirror LLC is independently owned and operated. Nothing
-            published by Open Mirror LLC is sponsored by, affiliated with,
-            endorsed by, or representative of the owner&rsquo;s full-time
-            employer. See this site&rsquo;s{" "}
+            Open Mirror LLC and its projects are independently owned and operated. They
+            are not affiliated with, sponsored by, or endorsed by the owner&rsquo;s
+            current or former employers or their affiliates. See this site&rsquo;s{" "}
             <Link href="/legal" className="text-[#22D3EE] hover:underline">
               Privacy, Terms &amp; Disclaimer
             </Link>{" "}

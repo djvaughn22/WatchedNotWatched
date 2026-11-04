@@ -33,18 +33,10 @@ export default function RootLayout({
     <html suppressHydrationWarning lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <ModeProvider>
-          <OpenMirrorNav
-            site="WatchedNotWatched.com"
-            accent="#22D3EE"
-            links={[
-              { emoji: "🎬", name: "Home", href: "/" },
-              { emoji: "🔎", name: "Search", href: "/search" },
-              { emoji: "🏆", name: "Top 222", href: "/top" },
-              { emoji: "🍿", name: "For You", href: "/foryou" },
-              { emoji: "📚", name: "My Library", href: "/library" },
-              { emoji: "ℹ️", name: "About WatchedNotWatched", href: "/about" },
-            ]}
-          />
+          {/* No ☰ links here: the ProductNav pill row below already carries
+              every page (owner brief 2026-11-03 — one menu, not two), and the
+              brand goes Home. The bar keeps the brand and the theme switch. */}
+          <OpenMirrorNav site="WatchedNotWatched.com" accent="#22D3EE" />
           <ProductNav />
           {children}
           <OpenMirrorFooter />
