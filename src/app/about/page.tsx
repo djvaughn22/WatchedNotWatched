@@ -30,11 +30,15 @@ export default function AboutPage() {
         </p>
 
         <p className="mt-6 text-[15px] leading-relaxed text-[#94a3b8]">
-          WatchedNotWatched is an{" "}
+          For anyone who wants one list of what they&apos;ve watched and read, kept on their own device instead of inside each streaming service.
+        </p>
+
+        <p className="mt-4 text-[15px] leading-relaxed text-[#94a3b8]">
+          WatchedNotWatched is an independent product of{" "}
           <a href="https://openmirrorllc.com" className="text-[#22D3EE] hover:underline">
             Open Mirror LLC
-          </a>{" "}
-          project.
+          </a>
+          .
         </p>
 
         {/* The footer's Contact and Disclaimer links land on these two
